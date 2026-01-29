@@ -1,3 +1,9 @@
+// "Build Engine & Tools" Copyright (c) 1993-1997 Ken Silverman
+// Ken Silverman's official web site: "http://www.advsys.net/ken"
+// See the included license file "BUILDLIC.TXT" for license info.
+
+// This file has been modified from Ken Silverman's original release
+
 /* -----------------------------------------------------------------------
 	  This source code is the property of Ken Silverman, East Greenwich,
 	  Rhode Island, and contains confidential and trade secret information.
@@ -10,68 +16,129 @@
 	  All rights reserved.  E-mail Address:  kjs@lems.brown.edu
 	----------------------------------------------------------------------- */
 
+#include <conio.h>
 #include <dos.h>
 #include <string.h>
+#include <stdarg.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
-#include <io.h>
-#include <sys\types.h>
-#include <sys\stat.h>
-#include "build.h"
-#include "pragmas.h"
+#include <unistd.h>
+#include <sys/stat.h>
+#include "compiler.h"
+#include "engine.h"
+#include "filesystem.h"
+#include "p_setup.h"
+#include "palette.h"
+#include "tables.h"
+#include "test.h"
+#include "tiles.h"
+#include "z_zone.h"
 
-void (__interrupt __far *oldtimerhandler)();
-void __interrupt __far timerhandler(void);
+
+#if defined __DJGPP__
+static _go32_dpmi_seginfo oldtimerhandler, newtimerhandler;
+#else
+static void __interrupt __far (*oldtimerhandler)(void);
+#endif
+static void __interrupt __far timerhandler(void);
+static uint8_t isTimerSet = 0;
+
 
 #define KEYFIFOSIZ 64
-void (__interrupt __far *oldkeyhandler)();
-void __interrupt __far keyhandler(void);
-volatile char keystatus[256], keyfifo[KEYFIFOSIZ], keyfifoplc, keyfifoend;
-volatile char readch, oldreadch, extended, keytemp;
+#if defined __DJGPP__
+static _go32_dpmi_seginfo oldkeyhandler, newkeyhandler;
+#else
+static void __interrupt __far (*oldkeyhandler)(void);
+#endif
+static void __interrupt __far keyhandler(void);
+static volatile uint8_t keystatus[256], keyfifo[KEYFIFOSIZ];
+static volatile int keyfifoend;
+static volatile uint8_t readch, extended;
+static uint8_t isKeyboardIsrSet = 0;
 
-long vel, svel, angvel;
 
-long posx, posy, posz, horiz = 100;
-short ang, cursectnum;
-static long hvel;
+static int32_t vel, svel, angvel;
 
-static long synctics = 0, lockclock = 0;
+static int32_t posx, posy, posz, horiz = 100;
+static int16_t ang, cursectnum;
+static int32_t hvel;
 
-static short brightness = 0;
+static int32_t synctics = 0, lockclock = 0;
 
-extern short editstatus;
+static int16_t brightness = 0;
 
 static char boardfilename[13];
 
-static char tempbuf[256];
+static uint8_t tempbuf[256];
 
 #define NUMOPTIONS 8
 #define NUMKEYS 19
-static long vesares[13][2] = {320,200,360,200,320,240,360,240,320,400,
-									360,400,640,350,640,400,640,480,800,600,
-									1024,768,1280,1024,1600,1200};
-static char option[NUMOPTIONS] = {0,0,0,0,0,0,1,0};
-static char buildkeys[NUMKEYS] =
+static uint8_t option[NUMOPTIONS];
+static uint8_t buildkeys[NUMKEYS] =
 {
 	0xc8,0xd0,0xcb,0xcd,0x2a,0x9d,0x1d,0x39,
 	0x1e,0x2c,0xd1,0xc9,0x33,0x34,
 	0x9c,0x1c,0xd,0xc,0xf,
 };
 
-main(int argc, char **argv)
+
+static void editinput(void);
+static void inittimer(void);
+static void uninittimer(void);
+static void initkeys(void);
+static void uninitkeys(void);
+static void keytimerstuff(void);
+_Noreturn static void I_Quit(void);
+
+
+/*
+=================
+=
+= M_CheckParm
+=
+= Checks for the given parameter in the program's command line arguments
+=
+= Returns the argument number (1 to argc - 1) or 0 if not present
+=
+=================
+*/
+
+static int myargc;
+static const char * const * myargv;
+
+int16_t M_CheckParm(char *check)
 {
-	long i, fil, daang = 0;
+	int16_t i;
+
+	for (i = 1; i < myargc; i++)
+		if (!stricmp(check, myargv[i]))
+			return i;
+
+	return 0;
+}
+
+
+int main(int argc, const char * const *argv)
+{
+	int32_t i, fil, daang = 0;
 	spritetype *tspr;
+
+	myargc = argc;
+	myargv = argv;
+
+	__djgpp_nearptr_enable();
+	Z_Init();
 
 	editstatus = 1;
 	if (argc >= 2)
 	{
-		strcpy(&boardfilename,argv[1]);
+		strcpy(boardfilename,argv[1]);
 		if (strchr(boardfilename,'.') == 0)
 			strcat(boardfilename,".map");
 	}
 	else
-		strcpy(&boardfilename,"test.map");
+		strcpy(boardfilename,"test.map");
 
 	initgroupfile("stuff.dat");
 	if ((fil = open("setup.dat",O_BINARY|O_RDWR,S_IREAD)) != -1)
@@ -80,8 +147,6 @@ main(int argc, char **argv)
 		read(fil,&buildkeys[0],NUMKEYS);
 		close(fil);
 	}
-	if (option[4] > 0) option[4] = 0;
-	initmouse();
 
 	initengine();
 
@@ -89,7 +154,7 @@ main(int argc, char **argv)
 		//copy the right code!
 	for(i=0;i<256;i++)
 		tempbuf[i] = ((i+32)&255);  //remap colors for screwy palette sectors
-	makepalookup(16,tempbuf,0,0,0,1);
+	makepalookup(16, tempbuf);
 
 	pskyoff[0] = 0; pskyoff[1] = 0; pskybits = 1;
 
@@ -98,24 +163,20 @@ main(int argc, char **argv)
 
 	loadpics("tiles000.art");
 
-	if (setgamemode(option[0],vesares[option[6]&15][0],vesares[option[6]&15][1]) < 0)
+	setgamemode();
+
+	initspritelists();
+
+	loadboard(boardfilename,&posx,&posy,&posz,&ang,&cursectnum);
+
+	for (i = 0; i < numsprites; i++)
 	{
-		uninitgroupfile();
-		uninitkeys();
-		uninittimer();
-		printf("%ld * %ld not supported in this graphics mode\n",xdim,ydim);
-		exit(0);
+		insertspritestat(sprite[i].statnum);
+		insertspritesect(sprite[i].sectnum);
 	}
 
-	if (loadboard(boardfilename,&posx,&posy,&posz,&ang,&cursectnum) == -1)
-	{
-		uninitgroupfile();
-		uninitkeys();
-		uninittimer();
-		setvmode(0x3);
-		printf("Board not found\n");
-		exit(0);
-	}
+		//Must be after loading sectors, etc!
+	updatesector(posx, posy, &cursectnum);
 
 	totalclock = 0;
 
@@ -142,36 +203,36 @@ main(int argc, char **argv)
 		editinput();
 
 		daang += (keystatus[0x6]-keystatus[0x7])*16;
-		if (keystatus[0x2]) rotatesprite(xdim<<15,ydim<<15,65536L,daang,75,0,0,8+64,0L,0L,xdim-1L,ydim-1L);
-		if (keystatus[0x3]) rotatesprite(xdim<<15,ydim<<15,65536L,daang,75,0,0,8,0L,0L,xdim-1L,ydim-1L);
-		if (keystatus[0x4]) rotatesprite(xdim<<15,ydim<<15,65536L,daang,75,0,0,1+8,0L,0L,xdim-1L,ydim-1L);
-		if (keystatus[0x5]) rotatesprite(xdim<<15,ydim<<15,65536L,daang,75,0,0,1+8+32,0L,0L,xdim-1L,ydim-1L);
+		if (keystatus[0x2]) rotatesprite((int32_t)XDIM << 15, (int32_t)YDIM << 15, 65536L, daang, 75, 0, 0,     8 + 64, 0L, 0L, XDIM - 1L, YDIM - 1L);
+		if (keystatus[0x3]) rotatesprite((int32_t)XDIM << 15, (int32_t)YDIM << 15, 65536L, daang, 75, 0, 0,     8     , 0L, 0L, XDIM - 1L, YDIM - 1L);
+		if (keystatus[0x4]) rotatesprite((int32_t)XDIM << 15, (int32_t)YDIM << 15, 65536L, daang, 75, 0, 0, 1 + 8     , 0L, 0L, XDIM - 1L, YDIM - 1L);
+		if (keystatus[0x5]) rotatesprite((int32_t)XDIM << 15, (int32_t)YDIM << 15, 65536L, daang, 75, 0, 0, 1 + 8 + 32, 0L, 0L, XDIM - 1L, YDIM - 1L);
 
 		nextpage();
 		synctics = totalclock-lockclock;
 		lockclock += synctics;
 	}
-	uninittimer();
-	uninitkeys();
-	uninitgroupfile();
-	uninitengine();
-	setvmode(0x3);
 
+	I_Quit();
 	return(0);
 }
 
-editinput()
+static void editinput(void)
 {
-	long i, j, k, cnt, templong, doubvel;
-	long goalz, xvect, yvect, hiz, loz;
-	long dax, day, hihit, lohit;
+	int32_t doubvel;
+	int32_t goalz, xvect, yvect, hiz, loz;
+	int32_t hihit, lohit;
 
 	if (keystatus[0x57] > 0)  //F11 - brightness
 	{
 		keystatus[0x57] = 0;
+
 		brightness++;
-		if (brightness > 16) brightness = 0;
-		setbrightness(brightness,palette);
+		if (brightness > 16)
+			brightness = 0;
+
+		setbrightnessbrightness(brightness);
+		setbrightnesspal();
 	}
 
 	if (keystatus[0x3b] > 0) posx--;
@@ -197,13 +258,13 @@ editinput()
 		xvect = 0, yvect = 0;
 		if (vel != 0)
 		{
-			xvect += ((vel*doubvel*(long)sintable[(ang+2560)&2047])>>3);
-			yvect += ((vel*doubvel*(long)sintable[(ang+2048)&2047])>>3);
+			xvect += ((vel*doubvel*(int32_t)sintable[(ang+2560)&2047])>>3);
+			yvect += ((vel*doubvel*(int32_t)sintable[(ang+2048)&2047])>>3);
 		}
 		if (svel != 0)
 		{
-			xvect += ((svel*doubvel*(long)sintable[(ang+2048)&2047])>>3);
-			yvect += ((svel*doubvel*(long)sintable[(ang+1536)&2047])>>3);
+			xvect += ((svel*doubvel*(int32_t)sintable[(ang+2048)&2047])>>3);
+			yvect += ((svel*doubvel*(int32_t)sintable[(ang+1536)&2047])>>3);
 		}
 		clipmove(&posx,&posy,&posz,&cursectnum,xvect,yvect,128L,4L<<8,4L<<8,CLIPMASK0);
 	}
@@ -246,51 +307,82 @@ editinput()
 	}
 }
 
-inittimer()
+static void inittimer(void)
 {
-	outp(0x43,0x34); outp(0x40,(1193181/120)&255); outp(0x40,(1193181/120)>>8);
-	oldtimerhandler = _dos_getvect(0x8);
-	_disable(); _dos_setvect(0x8, timerhandler); _enable();
+	outp(0x43, 0x34);
+	outp(0x40, (1193181 / 120) & 255);
+	outp(0x40, (1193181 / 120) >> 8);
+	_disable();
+	replaceInterrupt(oldtimerhandler, newtimerhandler, 0x8, timerhandler);
+	_enable();
+
+	isTimerSet = 1;
 }
 
-uninittimer()
+static void uninittimer(void)
 {
-	outp(0x43,0x34); outp(0x40,0); outp(0x40,0);           //18.2 times/sec
-	_disable(); _dos_setvect(0x8, oldtimerhandler); _enable();
+	if (isTimerSet == 0)
+		return;
+
+	//18.2 times/sec
+	outp(0x43,0x34);
+	outp(0x40,0);
+	outp(0x40,0);
+	_disable();
+	restoreInterrupt(0x8, oldtimerhandler, newtimerhandler);
+	_enable();
 }
 
-void __interrupt __far timerhandler()
+static void __interrupt __far timerhandler(void)
 {
 	totalclock++;
 	keytimerstuff();
-	outp(0x20,0x20);
+	outp(0x20, 0x20);
 }
 
-initkeys()
+static void initkeys(void)
 {
-	long i;
+	int32_t i;
 
-	keyfifoplc = 0; keyfifoend = 0;
-	for(i=0;i<256;i++) keystatus[i] = 0;
-	oldkeyhandler = _dos_getvect(0x9);
-	_disable(); _dos_setvect(0x9, keyhandler); _enable();
+	keyfifoend = 0;
+	for(i = 0; i < 256; i++)
+		keystatus[i] = 0;
+
+	_disable();
+	replaceInterrupt(oldkeyhandler, newkeyhandler, 0x9, keyhandler);
+	_enable();
+
+	isKeyboardIsrSet = 1;
 }
 
-uninitkeys()
+static void uninitkeys(void)
 {
-	short *ptr;
+	int16_t __far* ptr;
 
-	_dos_setvect(0x9, oldkeyhandler);
+	if (isKeyboardIsrSet == 0)
+		return;
+
+	restoreInterrupt(0x9, oldkeyhandler, newkeyhandler);
+
 		//Turn off shifts to prevent stucks with quitting
-	ptr = (short *)0x417; *ptr &= ~0x030f;
+	ptr = kMK_FP(0x40, 0x17 + __djgpp_conventional_base);
+	*ptr &= ~0x030f;
 }
 
-void __interrupt __far keyhandler()
+static void __interrupt __far keyhandler(void)
 {
-	oldreadch = readch; readch = kinp(0x60);
-	keytemp = kinp(0x61); koutp(0x61,keytemp|128); koutp(0x61,keytemp&127);
-	koutp(0x20,0x20);
-	if ((readch|1) == 0xe1) { extended = 128; return; }
+	uint8_t keytemp;
+	uint8_t oldreadch;
+
+	oldreadch = readch; readch = inp(0x60);
+	keytemp = inp(0x61); outp(0x61,keytemp|128); outp(0x61,keytemp&127);
+	outp(0x20,0x20);
+	if ((readch | 1) == 0xe1)
+	{
+		extended = 128;
+		return;
+	}
+
 	if (oldreadch != readch)
 	{
 		if ((readch&128) == 0)
@@ -316,7 +408,7 @@ void __interrupt __far keyhandler()
 	extended = 0;
 }
 
-keytimerstuff()
+static void keytimerstuff(void)
 {
 	if (keystatus[buildkeys[5]] == 0)
 	{
@@ -341,6 +433,40 @@ keytimerstuff()
 	if (vel > 0) vel = max(vel-2,0);
 }
 
-faketimerhandler()
+
+static void I_Shutdown(void)
 {
+	setvmode(0x3);
+	uninittimer();
+	uninitkeys();
+	unloadpics();
+	uninitgroupfile();
+	Z_Shutdown();
+}
+
+
+static void I_Quit(void)
+{
+	uint32_t resultfps;
+
+	I_Shutdown();
+
+	resultfps = 120 * 1000L * numframes / totalclock;
+
+	printf("Frame rate = %lu.%.3lu\n", resultfps / 1000, resultfps % 1000);
+	exit(0);
+}
+
+
+void I_Error(const char *error, ...)
+{
+	va_list argptr;
+
+	I_Shutdown();
+
+	va_start(argptr, error);
+	vprintf(error, argptr);
+	va_end(argptr);
+	printf("\n");
+	exit(1);
 }
