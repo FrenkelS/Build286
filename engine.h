@@ -14,6 +14,7 @@
 
 #define MAXSECTORS 109 /*1024*/
 #define MAXWALLS 731 /*8192*/
+// FIXME increase MAXSPRITES to fix bugs with rendered sprites that should be hidden
 #define MAXSPRITES 128 /*4096*/
 
 #define MAXWALLSB (MAXWALLS/4) /*2048*/
