@@ -143,7 +143,8 @@ void uninitgroupfile(void)
 int32_t kopen4load(char *filename, uint8_t searchfirst)
 {
 	int32_t i, j, k, fil, newhandle;
-	uint8_t bad, *gfileptr;
+	uint8_t bad;
+	uint8_t __far* gfileptr;
 
 	newhandle = MAXOPENFILES-1;
 	while (filehan[newhandle] != -1)
@@ -170,7 +171,7 @@ int32_t kopen4load(char *filename, uint8_t searchfirst)
 		{
 			for(i=gnumfiles[k]-1;i>=0;i--)
 			{
-				gfileptr = (uint8_t *)&gfilelist[k][i<<4];
+				gfileptr = (uint8_t __far*)&gfilelist[k][i<<4];
 
 				bad = 0;
 				for(j=0;j<13;j++)

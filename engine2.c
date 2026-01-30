@@ -246,9 +246,11 @@ int32_t clipmove (int32_t *x, int32_t *y, int32_t *z, int16_t *sectnum,
 			 int32_t xvect, int32_t yvect,
 			 int32_t walldist, int32_t ceildist, int32_t flordist, uint32_t cliptype)
 {
-	walltype *wal, *wal2;
-	spritetype *spr;
-	sectortype *sec, *sec2;
+	walltype __far* wal;
+	walltype __far* wal2;
+	spritetype __far* spr;
+	sectortype __far* sec;
+	sectortype __far* sec2;
 	int32_t i, j, templong1, templong2;
 	int32_t oxvect, oyvect, goalx, goaly, intx, inty, lx, ly, retval;
 	int32_t k, l, clipsectcnt, startwall, endwall, cstat, dasect;
@@ -565,7 +567,7 @@ int32_t clipmove (int32_t *x, int32_t *y, int32_t *z, int16_t *sectnum,
 int32_t getceilzofslope(int16_t sectnum, int32_t dax, int32_t day)
 {
 	int32_t dx, dy, i, j;
-	walltype *wal;
+	walltype __far* wal;
 
 	if (!(sector[sectnum].ceilingstat&2)) return(sector[sectnum].ceilingz);
 	wal = &wall[sector[sectnum].wallptr];
@@ -579,7 +581,7 @@ int32_t getceilzofslope(int16_t sectnum, int32_t dax, int32_t day)
 int32_t getflorzofslope(int16_t sectnum, int32_t dax, int32_t day)
 {
 	int32_t dx, dy, i, j;
-	walltype *wal;
+	walltype __far* wal;
 
 	if (!(sector[sectnum].floorstat&2)) return(sector[sectnum].floorz);
 	wal = &wall[sector[sectnum].wallptr];
@@ -642,7 +644,7 @@ int32_t clipinsideboxline(int32_t x, int32_t y, int32_t x1, int32_t y1, int32_t 
 
 int32_t inside (int32_t x, int32_t y, int16_t sectnum)
 {
-	walltype *wal;
+	walltype __far* wal;
 	int32_t i, x1, y1, x2, y2;
 	uint32_t cnt;
 
@@ -670,9 +672,10 @@ int32_t inside (int32_t x, int32_t y, int16_t sectnum)
 }
 
 
-static void qinterpolatedown16(void *bufptr, int32_t num, int32_t val, int32_t add)
+static void qinterpolatedown16(void __far* bufptr, int32_t num, int32_t val, int32_t add)
 {
-	int32_t i, *lptr = (int32_t *)bufptr;
+	int32_t i;
+	int32_t __far* lptr = (int32_t __far*)bufptr;
 	for (i = 0; i < num; i++)
 	{
 		lptr[i] = (val >> 16);
@@ -812,9 +815,9 @@ static void ceilspritescan(int32_t x1, int32_t x2, uint8_t __far* globalbufplc)
 }
 
 
-int32_t spritewallfront (spritetype *s, int32_t w)
+int32_t spritewallfront(spritetype __far* s, int32_t w)
 {
-	walltype *wal;
+	walltype __far* wal;
 	int32_t x1, y1;
 
 	wal = &wall[w]; x1 = wal->x; y1 = wal->y;
@@ -823,7 +826,7 @@ int32_t spritewallfront (spritetype *s, int32_t w)
 }
 
 
-void clearlongbuf(int32_t *s, int32_t c, size_t n)
+void clearlongbuf(int32_t __far* s, int32_t c, size_t n)
 {
 	while (n--)
 		*s++ = c;
@@ -848,7 +851,7 @@ static void a_mvlineasm1(int32_t vinc, uint8_t __far* paloffs, int32_t cnt, uint
 }
 
 
-void maskwallscan(int32_t x1, int32_t x2, int16_t *uwal, int16_t *dwal, int32_t *swal, int32_t *lwal, int16_t globalpicnum)
+void maskwallscan(int32_t x1, int32_t x2, int16_t __far* uwal, int16_t __far* dwal, int32_t __far* swal, int32_t __far* lwal, int16_t globalpicnum)
 {
 	int32_t x, startx, xnice, ynice;
 	int32_t y1ve, y2ve, tsizx, tsizy;
@@ -1005,17 +1008,17 @@ int32_t krecip(int32_t num)
 }
 
 
-void clearshortbuf(int16_t *s, int16_t c, size_t n)
+void clearshortbuf(int16_t __far* s, int16_t c, size_t n)
 {
 	while (n--)
 		*s++ = c;
 }
 
 
-void qinterpolatedown16short(void *bufptr, int32_t num, int32_t val, int32_t add)
+void qinterpolatedown16short(void __far* bufptr, int32_t num, int32_t val, int32_t add)
 {
 	int32_t i;
-	int16_t *sptr = (int16_t *)bufptr;
+	int16_t __far* sptr = (int16_t __far*)bufptr;
 	for (i = 0; i < num; i++)
 	{
 		sptr[i] = (int16_t)(val>>16);
@@ -1024,7 +1027,7 @@ void qinterpolatedown16short(void *bufptr, int32_t num, int32_t val, int32_t add
 }
 
 
-uint8_t owallmost(int16_t *mostbuf, int32_t w, int32_t z)
+uint8_t owallmost(int16_t __far* mostbuf, int32_t w, int32_t z)
 {
 	uint8_t bad;
 	int32_t inty, xcross, y, yinc;
@@ -1040,7 +1043,7 @@ uint8_t owallmost(int16_t *mostbuf, int32_t w, int32_t z)
 
 	if ((bad&3) == 3)
 	{
-		memset(&mostbuf[ix1],0,(ix2-ix1+1)*sizeof(mostbuf[0]));
+		_fmemset(&mostbuf[ix1], 0, (ix2 - ix1 + 1) * sizeof(mostbuf[0]));
 		return(bad);
 	}
 
@@ -1059,12 +1062,12 @@ uint8_t owallmost(int16_t *mostbuf, int32_t w, int32_t z)
 		if ((bad&3) == 2)
 		{
 			if (xb1[w] <= xcross) { iy2 = inty; ix2 = xcross; }
-			memset(&mostbuf[xcross+1],0,(xb2[w]-xcross)*sizeof(mostbuf[0]));
+			_fmemset(&mostbuf[xcross + 1], 0, (xb2[w] - xcross) * sizeof(mostbuf[0]));
 		}
 		else
 		{
 			if (xcross <= xb2[w]) { iy1 = inty; ix1 = xcross; }
-			memset(&mostbuf[xb1[w]],0,(xcross-xb1[w]+1)*sizeof(mostbuf[0]));
+			_fmemset(&mostbuf[xb1[w]], 0, (xcross - xb1[w] + 1) * sizeof(mostbuf[0]));
 		}
 	}
 
@@ -1101,8 +1104,8 @@ uint8_t owallmost(int16_t *mostbuf, int32_t w, int32_t z)
 
 void drawsprite (int32_t snum)
 {
-	spritetype *tspr;
-	sectortype *sec;
+	spritetype __far* tspr;
+	sectortype __far* sec;
 	int32_t startum, startdm, sectnum, xb, yp, cstat;
 	int32_t siz, xsiz, ysiz, xoff, yoff, xspan, yspan;
 	int32_t x1, y1, x2, y2, lx, rx, dalx2, darx2, i, j, k, x, linum, linuminc;
@@ -1236,7 +1239,7 @@ void drawsprite (int32_t snum)
 					if (dalx2 <= darx2)
 					{
 						if ((dalx2 == lx) && (darx2 == rx)) return;
-						memset(&dwall[dalx2],0,(darx2-dalx2+1)*sizeof(dwall[0]));
+						_fmemset(&dwall[dalx2], 0, (darx2 - dalx2 + 1) * sizeof(dwall[0]));
 					}
 					break;
 				case 1:
@@ -1521,7 +1524,7 @@ void drawsprite (int32_t snum)
 							if (dalx2 <= darx2)
 							{
 								if ((dalx2 == xb1[MAXWALLSB-1]) && (darx2 == xb2[MAXWALLSB-1])) return;
-								memset(&dwall[dalx2],0,(darx2-dalx2+1)*sizeof(dwall[0]));
+								_fmemset(&dwall[dalx2], 0, (darx2 - dalx2 + 1) * sizeof(dwall[0]));
 							}
 							break;
 						case 1:
@@ -1801,7 +1804,7 @@ void drawsprite (int32_t snum)
 					if (dalx2 <= darx2)
 					{
 						if ((dalx2 == lx) && (darx2 == rx)) return;
-						memset(&dwall[dalx2],0,(darx2-dalx2+1)*sizeof(dwall[0]));
+						_fmemset(&dwall[dalx2], 0, (darx2 - dalx2 + 1) * sizeof(dwall[0]));
 					}
 					break;
 				case 1:

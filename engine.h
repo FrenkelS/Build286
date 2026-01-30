@@ -184,7 +184,7 @@ extern uint8_t __far* _s_screen;
 
 extern int32_t transarea;
 
-extern spritetype *tspriteptr[MAXSPRITESONSCREEN];
+extern spritetype __far* tspriteptr[MAXSPRITESONSCREEN];
 extern int32_t __far spritesx[MAXSPRITESONSCREEN];
 extern int32_t __far spritesy[MAXSPRITESONSCREEN+1];
 
@@ -265,14 +265,14 @@ int32_t getflorzofslope(int16_t sectnum, int32_t dax, int32_t day);
 int32_t clipinsideboxline(int32_t x, int32_t y, int32_t x1, int32_t y1, int32_t x2, int32_t y2, int32_t walldist);
 int32_t inside (int32_t x, int32_t y, int16_t sectnum);
 void drawsprite (int32_t snum);
-int32_t spritewallfront (spritetype *s, int32_t w);
-void clearlongbuf(int32_t *s, int32_t c, size_t n);
-void maskwallscan(int32_t x1, int32_t x2, int16_t *uwal, int16_t *dwal, int32_t *swal, int32_t *lwal, int16_t globalpicnum);
+int32_t spritewallfront(spritetype __far* s, int32_t w);
+void clearlongbuf(int32_t __far* s, int32_t c, size_t n);
+void maskwallscan(int32_t x1, int32_t x2, int16_t __far* uwal, int16_t __far* dwal, int32_t __far* swal, int32_t __far* lwal, int16_t globalpicnum);
 void transmaskwallscan(int32_t x1, int32_t x2, int16_t globalpicnum);
 int32_t krecip(int32_t num);
-uint8_t owallmost(int16_t *mostbuf, int32_t w, int32_t z);
-void clearshortbuf(int16_t *s, int16_t c, size_t n);
-void qinterpolatedown16short(void *bufptr, int32_t num, int32_t val, int32_t add);
+uint8_t owallmost(int16_t __far* mostbuf, int32_t w, int32_t z);
+void clearshortbuf(int16_t __far* s, int16_t c, size_t n);
+void qinterpolatedown16short(void __far* bufptr, int32_t num, int32_t val, int32_t add);
 
 
 /*************************************************************************

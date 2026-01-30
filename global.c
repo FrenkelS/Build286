@@ -55,7 +55,7 @@ int32_t smostwallcnt = -1L;
 int32_t __far spritesx[MAXSPRITESONSCREEN];
 int32_t __far spritesy[MAXSPRITESONSCREEN+1];
 
-spritetype *tspriteptr[MAXSPRITESONSCREEN];
+spritetype __far* tspriteptr[MAXSPRITESONSCREEN];
 
 int16_t __far uwall[XDIM];
 int16_t __far dwall[XDIM];

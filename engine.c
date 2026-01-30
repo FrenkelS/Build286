@@ -128,10 +128,10 @@ static int32_t divscale(int32_t a, int32_t b, int32_t c)
 #define klabs labs
 
 
-static void swaplong(void *a, void *b)
+static void swaplong(void __far* a, void __far* b)
 {
-	int32_t *pa = a;
-	int32_t *pb = b;
+	int32_t __far* pa = a;
+	int32_t __far* pb = b;
 	int32_t tmp = *pa;
 	*pa = *pb;
 	*pb = tmp;
@@ -233,10 +233,10 @@ static uint32_t msqrtasm(uint32_t c)
 static void scansector (int16_t sectnum);
 static int32_t bunchfront (int32_t b1, int32_t b2);
 static void drawalls (int32_t bunch);
-static void prepwall(int32_t z, walltype *wal);
+static void prepwall(int32_t z, walltype __far* wal);
 static void ceilscan (int32_t x1, int32_t x2, int32_t sectnum);
 static void florscan (int32_t x1, int32_t x2, int32_t sectnum);
-static void wallscan(int32_t x1, int32_t x2, int16_t *uwal, int16_t *dwal, int32_t *swal, int32_t *lwal, int16_t globalpicnum);
+static void wallscan(int32_t x1, int32_t x2, int16_t __far* uwal, int16_t __far* dwal, int32_t __far* swal, int32_t __far* lwal, int16_t globalpicnum);
 static void hline(int32_t xr, int32_t yp, uint8_t __far* _a_gbuf);
 static void drawmaskwall(int16_t damaskwallcnt);
 static void setview(void);
@@ -245,7 +245,7 @@ static void dorotatesprite (int32_t sx, int32_t sy, int32_t z, int16_t a, int16_
 static int32_t clippoly4(int32_t cx1, int32_t cy1, int32_t cx2, int32_t cy2);
 static void clearallviews(int32_t dacol);
 static void getzsofslope(int16_t sectnum, int32_t dax, int32_t day, int32_t *ceilz, int32_t *florz);
-static uint8_t wallmost(int16_t *mostbuf, int32_t w, int32_t sectnum, uint8_t dastat);
+static uint8_t wallmost(int16_t __far* mostbuf, int32_t w, int32_t sectnum, uint8_t dastat);
 static void grouscan (int32_t dax1, int32_t dax2, int32_t sectnum, uint8_t dastat);
 static void parascan (int32_t sectnum, uint8_t dastat, int32_t bunch);
 
@@ -254,7 +254,8 @@ void drawrooms(int32_t daposx, int32_t daposy, int32_t daposz,
 			 int16_t daang, int32_t dahoriz, int16_t dacursectnum)
 {
 	int32_t i, j, cz, fz, closest;
-	int16_t *shortptr1, *shortptr2;
+	int16_t __far* shortptr1;
+	int16_t __far* shortptr2;
 
 	beforedrawrooms = 0;
 
@@ -282,10 +283,10 @@ void drawrooms(int32_t daposx, int32_t daposy, int32_t daposz,
 	if ((xyaspect != oxyaspect) || (XDIM != oxdimen) || (viewingrange != oviewingrange))
 		dosetaspect();
 
-	memset(&gotsector[0],0,(int32_t)((numsectors+7)>>3));
+	_fmemset(gotsector, 0, ((numsectors + 7) >> 3));
 
-	shortptr1 = (int16_t *)&startumost[0];
-	shortptr2 = (int16_t *)&startdmost[0];
+	shortptr1 = (int16_t __far*)&startumost[0];
+	shortptr2 = (int16_t __far*)&startdmost[0];
 	i = XDIM-1;
 	do
 	{
@@ -346,8 +347,9 @@ void drawrooms(int32_t daposx, int32_t daposy, int32_t daposz,
 
 static void scansector (int16_t sectnum)
 {
-	walltype *wal, *wal2;
-	spritetype *spr;
+	walltype __far* wal;
+	walltype __far* wal2;
+	spritetype __far* spr;
 	int32_t xs, ys, x1, y1, x2, y2, xp1, yp1, xp2, yp2, templong;
 	int16_t z, zz, startwall, endwall, numscansbefore, scanfirst, bunchfrst;
 	int16_t nextsectnum;
@@ -369,7 +371,7 @@ static void scansector (int16_t sectnum)
 				xs = spr->x-globalposx; ys = spr->y-globalposy;
 				if ((spr->cstat&48) || (xs*cosglobalang+ys*singlobalang > 0))
 				{
-					memcpy(&tsprite[spritesortcnt],spr,sizeof(spritetype));
+					_fmemcpy(&tsprite[spritesortcnt], spr, sizeof(spritetype));
 					tsprite[spritesortcnt++].owner = z;
 				}
 			}
@@ -479,7 +481,7 @@ skipitaddwall:
 
 static int32_t wallfront (int32_t l1, int32_t l2)
 {
-	walltype *wal;
+	walltype __far* wal;
 	int32_t x11, y11, x21, y21, x12, y12, x22, y22, dx, dy, t1, t2;
 
 	wal = &wall[thewall[l1]]; x11 = wal->x; y11 = wal->y;
@@ -532,8 +534,9 @@ static int32_t bunchfront (int32_t b1, int32_t b2)
 
 static void drawalls (int32_t bunch)
 {
-	sectortype *sec, *nextsec;
-	walltype *wal;
+	sectortype __far* sec;
+	sectortype __far* nextsec;
+	walltype __far* wal;
 	int32_t i, x, x1, x2, cz[5], fz[5];
 	int32_t z, wallnum, sectnum, nextsectnum;
 	int32_t startsmostwallcnt, startsmostcnt, gotswall;
@@ -701,7 +704,7 @@ static void drawalls (int32_t bunch)
 						smostwall[smostwallcnt] = z;
 						smostwalltype[smostwallcnt] = 1;   //1 for umost
 						smostwallcnt++;
-						memcpy(&smost[smostcnt],&umost[x1],i*sizeof(smost[0]));
+						_fmemcpy(&smost[smostcnt], &umost[x1], i * sizeof(smost[0]));
 						smostcnt += i;
 					}
 				}
@@ -806,7 +809,7 @@ static void drawalls (int32_t bunch)
 						smostwall[smostwallcnt] = z;
 						smostwalltype[smostwallcnt] = 2;   //2 for dmost
 						smostwallcnt++;
-						memcpy(&smost[smostcnt],&dmost[x1],i*sizeof(smost[0]));
+						_fmemcpy(&smost[smostcnt], &dmost[x1], i * sizeof(smost[0]));
 						smostcnt += i;
 					}
 				}
@@ -886,7 +889,7 @@ static void drawalls (int32_t bunch)
 	}
 }
 
-static void prepwall(int32_t z, walltype *wal)
+static void prepwall(int32_t z, walltype __far* wal)
 {
 	int32_t i, l, ol, splc, sinc, x, topinc, top, botinc, bot, walxrepeat;
 
@@ -967,7 +970,7 @@ static void prepwall(int32_t z, walltype *wal)
 static void ceilscan (int32_t x1, int32_t x2, int32_t sectnum)
 {
 	int32_t i, j, ox, oy, x, y1, y2, twall, bwall;
-	sectortype *sec;
+	sectortype __far* sec;
 	int16_t globalpicnum;
 	uint8_t __far* bufplc;
 
@@ -1107,7 +1110,7 @@ static void ceilscan (int32_t x1, int32_t x2, int32_t sectnum)
 static void florscan (int32_t x1, int32_t x2, int32_t sectnum)
 {
 	int32_t i, j, ox, oy, x, y1, y2, twall, bwall;
-	sectortype *sec;
+	sectortype __far* sec;
 	int16_t globalpicnum;
 	uint8_t __far* bufplc;
 
@@ -1268,7 +1271,7 @@ static void a_vlineasm1(int32_t vinc, uint8_t __far* paloffs, int32_t cnt, uint3
 }
 
 
-static void wallscan(int32_t x1, int32_t x2, int16_t *uwal, int16_t *dwal, int32_t *swal, int32_t *lwal, int16_t globalpicnum)
+static void wallscan(int32_t x1, int32_t x2, int16_t __far* uwal, int16_t __far* dwal, int32_t __far* swal, int32_t __far* lwal, int16_t globalpicnum)
 {
 	int32_t x, xnice, ynice;
 	uint8_t __far* fpalookup;
@@ -1633,8 +1636,9 @@ void drawmasks(void)
 static void drawmaskwall(int16_t damaskwallcnt)
 {
 	int32_t i, j, k, x, z, sectnum, z1, z2, lx, rx;
-	sectortype *sec, *nsec;
-	walltype *wal;
+	sectortype __far* sec;
+	sectortype __far* nsec;
+	walltype __far* wal;
 	int16_t globalpicnum;
 
 	z = maskwall[damaskwallcnt];
@@ -1687,7 +1691,7 @@ static void drawmaskwall(int16_t damaskwallcnt)
 				if (lx <= rx)
 				{
 					if ((lx == xb1[z]) && (rx == xb2[z])) return;
-					memset(&dwall[lx],0,(rx-lx+1)*sizeof(dwall[0]));
+					_fmemset(&dwall[lx], 0, (rx - lx + 1) * sizeof(dwall[0]));
 				}
 				break;
 			case 1:
@@ -1805,7 +1809,7 @@ void insertspritestat(int16_t statnum)
 
 void updatesector(int32_t x, int32_t y, int16_t *sectnum)
 {
-	walltype *wal;
+	walltype __far* wal;
 	int32_t i, j;
 
 	if (inside(x,y,*sectnum) == 1) return;
@@ -1842,9 +1846,10 @@ void getzrange(int32_t x, int32_t y, int32_t z, int16_t sectnum,
 			 int32_t *ceilz, int32_t *ceilhit, int32_t *florz, int32_t *florhit,
 			 int32_t walldist, uint32_t cliptype)
 {
-	sectortype *sec;
-	walltype *wal, *wal2;
-	spritetype *spr;
+	sectortype __far* sec;
+	walltype __far* wal;
+	walltype __far* wal2;
+	spritetype __far* spr;
 	int32_t clipsectcnt, startwall, endwall, tilenum, xoff, yoff, dax, day;
 	int32_t xmin, ymin, xmax, ymax, i, j, k, l, daz, daz2, dx, dy;
 	int32_t x1, y1, x2, y2, x3, y3, x4, y4, ang, cosang, sinang;
@@ -2412,8 +2417,9 @@ static void clearallviews(int32_t dacol)
 static void getzsofslope(int16_t sectnum, int32_t dax, int32_t day, int32_t *ceilz, int32_t *florz)
 {
 	int32_t dx, dy, i, j;
-	walltype *wal, *wal2;
-	sectortype *sec;
+	walltype __far* wal;
+	walltype __far* wal2;
+	sectortype __far* sec;
 
 	sec = &sector[sectnum];
 	*ceilz = sec->ceilingz; *florz = sec->floorz;
@@ -2429,7 +2435,7 @@ static void getzsofslope(int16_t sectnum, int32_t dax, int32_t day, int32_t *cei
 }
 
 
-static uint8_t wallmost(int16_t *mostbuf, int32_t w, int32_t sectnum, uint8_t dastat)
+static uint8_t wallmost(int16_t __far* mostbuf, int32_t w, int32_t sectnum, uint8_t dastat)
 {
 	uint8_t bad;
 	int32_t i, j, t, y, z, inty, intz, xcross, yinc, fw;
@@ -2507,7 +2513,7 @@ static uint8_t wallmost(int16_t *mostbuf, int32_t w, int32_t sectnum, uint8_t da
 
 	if ((bad&3) == 3)
 	{
-		memset(&mostbuf[ix1],0,(ix2-ix1+1)*sizeof(mostbuf[0]));
+		_fmemset(&mostbuf[ix1], 0, (ix2 - ix1 + 1) * sizeof(mostbuf[0]));
 		return(bad);
 	}
 
@@ -2532,12 +2538,12 @@ static uint8_t wallmost(int16_t *mostbuf, int32_t w, int32_t sectnum, uint8_t da
 		if ((bad&3) == 2)
 		{
 			if (xb1[w] <= xcross) { z2 = intz; iy2 = inty; ix2 = xcross; }
-			memset(&mostbuf[xcross+1],0,(xb2[w]-xcross)*sizeof(mostbuf[0]));
+			_fmemset(&mostbuf[xcross + 1], 0, (xb2[w] - xcross) * sizeof(mostbuf[0]));
 		}
 		else
 		{
 			if (xcross <= xb2[w]) { z1 = intz; iy1 = inty; ix1 = xcross; }
-			memset(&mostbuf[xb1[w]],0,(xcross-xb1[w]+1)*sizeof(mostbuf[0]));
+			_fmemset(&mostbuf[xb1[w]], 0, (xcross - xb1[w] + 1) * sizeof(mostbuf[0]));
 		}
 	}
 
@@ -2612,8 +2618,8 @@ static void grouscan (int32_t dax1, int32_t dax2, int32_t sectnum, uint8_t dasta
 	int32_t daslope, dasqr;
 	int32_t shoffs, shinc, m1, m2, *mptr1, *mptr2, *nptr1, *nptr2;
 	uint8_t __far* p;
-	walltype *wal;
-	sectortype *sec;
+	walltype __far* wal;
+	sectortype __far* sec;
 	int16_t globalpicnum;
 	uint8_t __far* bufplc;
 
@@ -2781,7 +2787,7 @@ static void grouscan (int32_t dax1, int32_t dax2, int32_t sectnum, uint8_t dasta
 
 static void parascan (int32_t sectnum, uint8_t dastat, int32_t bunch)
 {
-	sectortype *sec;
+	sectortype __far* sec;
 	int32_t j, k, l, m, n, x, z, wallnum, nextsectnum, globalhorizbak;
 	int16_t *topptr, *botptr;
 	int16_t globalpicnum;

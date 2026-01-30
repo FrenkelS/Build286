@@ -1,4 +1,4 @@
-set CFLAGS=-2 -os -bcl=dos -ml -k4096 -q -wx -DC_ONLY
+set CFLAGS=-2 -os -bcl=dos -mm -k4096 -q -wx -DC_ONLY
 
 @set GLOBOBJS=
 @set GLOBOBJS=%GLOBOBJS% engine.c

@@ -122,7 +122,7 @@ int16_t M_CheckParm(char *check)
 int main(int argc, const char * const *argv)
 {
 	int32_t i, fil, daang = 0;
-	spritetype *tspr;
+	spritetype __far* tspr;
 
 	myargc = argc;
 	myargv = argv;
