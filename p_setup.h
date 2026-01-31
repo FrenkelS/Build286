@@ -17,6 +17,10 @@ extern int16_t numsectors;
 
 extern int16_t numsprites;
 
+extern sectortype __far sector[MAXSECTORS];
+extern walltype __far wall[MAXWALLS];
+extern spritetype __far sprite[MAXSPRITES];
+
 
 void loadboard(char *filename, int32_t *daposx, int32_t *daposy, int32_t *daposz, int16_t *daang, int16_t *dacursectnum);
 

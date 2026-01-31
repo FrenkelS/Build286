@@ -9,10 +9,6 @@
 int32_t _a_transmode = 0;
 int32_t _a_glogx, _a_glogy;
 
-sectortype __far sector[MAXSECTORS];
-walltype __far wall[MAXWALLS];
-spritetype __far sprite[MAXSPRITES];
-
 int32_t spritesortcnt;
 spritetype __far tsprite[MAXSPRITESONSCREEN];
 

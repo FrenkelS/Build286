@@ -128,10 +128,6 @@ typedef uint8_t assertSizeSpritetype[sizeof(spritetype) == 44 ? 1 : -1];
 #pragma pack(pop)
 
 
-extern sectortype __far sector[MAXSECTORS];
-extern walltype __far wall[MAXWALLS];
-extern spritetype __far sprite[MAXSPRITES];
-
 extern int32_t spritesortcnt;
 extern spritetype __far tsprite[MAXSPRITESONSCREEN];
 
