@@ -350,7 +350,9 @@ static void scansector (int16_t sectnum)
 	walltype __far* wal;
 	walltype __far* wal2;
 	spritetype __far* spr;
-	int32_t xs, ys, x1, y1, x2, y2, xp1, yp1, xp2, yp2, templong;
+	int32_t xs, ys, x1, y1, x2, y2, xp1, yp1, templong;
+	int32_t xp2 = 0; // shut up compiler warning
+	int32_t yp2 = 0; // shut up compiler warning
 	int16_t z, zz, startwall, endwall, numscansbefore, scanfirst, bunchfrst;
 	int16_t nextsectnum;
 
@@ -891,7 +893,9 @@ static void drawalls (int32_t bunch)
 
 static void prepwall(int32_t z, walltype __far* wal)
 {
-	int32_t i, l, ol, splc, sinc, x, topinc, top, botinc, bot, walxrepeat;
+	int32_t i, splc, sinc, x, topinc, top, botinc, bot, walxrepeat;
+	int32_t  l = 0; // shut up compiler warning
+	int32_t ol = 0; // shut up compiler warning
 
 	walxrepeat = (wal->xrepeat<<3);
 

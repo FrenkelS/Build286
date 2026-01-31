@@ -108,12 +108,6 @@ static memblock_t __far* segmentToPointer(segment_t seg)
 }
 
 
-static boolean Z_EqualNames(const char __far* farName, const char* nearName)
-{
-	return _fmemcmp(farName, nearName, 8) == 0;
-}
-
-
 #define	EMS_INT			0x67
 
 #define	EMS_STATUS		0x40
@@ -143,7 +137,7 @@ static segment_t Z_InitExpandedMemory(void)
 #if defined _M_I86
 	emsInterruptVectorSegment = kMK_FP(0, EMS_INT * 4 + 2);
 	actualEmsDeviceName = kMK_FP(*emsInterruptVectorSegment, 0x000a);
-	if (!Z_EqualNames(actualEmsDeviceName, expectedEmsDeviceName))
+	if (_fmemcmp(actualEmsDeviceName, expectedEmsDeviceName, 8))
 		return 0;
 
 	// EMS detected
@@ -266,9 +260,11 @@ static void Z_MoveExtendedMemoryBlock(const ExtMemMoveStruct_t __far* s)
 boolean Z_InitXms(uint32_t size)
 {
 #if defined _M_I86
+#if !defined C_ONLY
 	union REGS regs;
 	struct SREGS sregs;
 	uint16_t xmsSize;
+#endif
 #endif
 
 	if (M_CheckParm("-noxms"))
