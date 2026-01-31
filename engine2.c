@@ -1312,8 +1312,8 @@ void drawsprite (int32_t snum)
 		if ((cstat&8) > 0) yoff = -yoff;
 
 		xspan = tilesizx[tilenum]; yspan = tilesizy[tilenum];
-		xv = tspr->xrepeat*sintable[(tspr->ang+2560+1536)&2047];
-		yv = tspr->xrepeat*sintable[(tspr->ang+2048+1536)&2047];
+		xv = tspr->xrepeat*(int32_t)sintable[(tspr->ang+2560+1536)&2047];
+		yv = tspr->xrepeat*(int32_t)sintable[(tspr->ang+2048+1536)&2047];
 		i = (xspan>>1)+xoff;
 		x1 = tspr->x-globalposx-mulscale16(xv,i); x2 = x1+mulscale16(xv,xspan);
 		y1 = tspr->y-globalposy-mulscale16(yv,i); y2 = y1+mulscale16(yv,xspan);
