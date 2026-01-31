@@ -9,6 +9,24 @@ It uses 64 kB of EMS memory, if available, as an upper memory block to store dat
 
 Download Build286 [here](https://github.com/FrenkelS/Build286/releases).
 
+## Controls:
+|Action                           |Keys            |
+|---------------------------------|----------------|
+|Walk                             |Arrow keys      |
+|Run                              |Left Shift      |
+|Walk slowly                      |F1, F2, F9, F10 |
+|Strafe                           |Right Ctrl      |
+|Strafe left and right            |<, >            |
+|Strafe left and right slowly     |F3, F4          |
+|Jump                             |A               |
+|Crouch                           |Z               |
+|Look up and down                 |Left Ctrl + A, Z|
+|Change brightness                |F11             |
+|Change aspect ratio              |9, 0, +, -      |
+|Render Build Engine sprite       |1, 2, 3, 4      |
+|Rotate Build Engine sprite       |5, 6            |
+|Quit to DOS                      |Esc             |
+
 ## Command line arguments:
 |Command line argument|Effect               |
 |---------------------|---------------------|
