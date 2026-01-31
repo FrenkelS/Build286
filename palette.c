@@ -151,7 +151,7 @@ uint8_t translucfunc(uint8_t lo, uint8_t hi)
 	return transluc[lo + (hi << 8)];
 #else
 	static uint8_t x = 0;
-	x = !x;
+	x ^= 1;
 	return x ? lo : hi;
 #endif
 }
