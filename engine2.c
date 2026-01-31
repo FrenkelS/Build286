@@ -1102,21 +1102,771 @@ uint8_t owallmost(int16_t __far* mostbuf, int32_t w, int32_t z)
 }
 
 
+static void drawspriteFace(int32_t yp, spritetype __far* tspr, int16_t tilenum,
+							int32_t xb, int32_t xoff, int32_t cstat,
+							int32_t yoff, sectortype __far* sec, int32_t sectnum,
+							int32_t spritenum)
+{
+	int32_t startum, startdm;
+	int32_t siz, xsiz, ysiz, xspan, yspan;
+	int32_t x1, y1, x2, y2, lx, rx, dalx2, darx2, i, j, k, x, linum, linuminc;
+	int32_t yinc, z1, z2;
+	int32_t xv;
+	uint8_t daclip;
+	int16_t globalpicnum;
+
+	if (yp <= (4<<8)) return;
+
+	siz = divscale19(xdimenscale,yp);
+
+	xv = mulscale16(((int32_t)tspr->xrepeat)<<16,xyaspect);
+
+	xspan = tilesizx[tilenum];
+	yspan = tilesizy[tilenum];
+	xsiz = mulscale30(siz,xv*xspan);
+	ysiz = mulscale14(siz,tspr->yrepeat*yspan);
+
+	if (((tilesizx[tilenum]>>11) >= xsiz) || (yspan >= (ysiz>>1)))
+		return;  //Watch out for divscale overflow
+
+	x1 = xb-(xsiz>>1);
+	if (xspan&1) x1 += mulscale31(siz,xv);  //Odd xspans
+	i = mulscale30(siz,xv*xoff);
+	if ((cstat&4) == 0) x1 -= i; else x1 += i;
+
+	y1 = mulscale16(tspr->z-globalposz,siz);
+	y1 -= mulscale14(siz,tspr->yrepeat*yoff);
+	y1 += (globalhoriz<<8)-ysiz;
+	if (cstat&128)
+	{
+		y1 += (ysiz>>1);
+		if (yspan&1) y1 += mulscale15(siz,tspr->yrepeat);  //Odd yspans
+	}
+
+	x2 = x1+xsiz-1;
+	y2 = y1+ysiz-1;
+	if ((y1|255) >= (y2|255)) return;
+
+	lx = (x1>>8)+1; if (lx < 0) lx = 0;
+	rx = (x2>>8); if (rx >= XDIM) rx = XDIM-1;
+	if (lx > rx) return;
+
+	yinc = divscale32(yspan,ysiz);
+
+	if ((sec->ceilingstat&3) == 0)
+		startum = globalhoriz+mulscale24(siz,sec->ceilingz-globalposz)-1;
+	else
+		startum = 0;
+	if ((sec->floorstat&3) == 0)
+		startdm = globalhoriz+mulscale24(siz,sec->floorz-globalposz)+1;
+	else
+		startdm = 0x7fffffff;
+	if ((y1>>8) > startum) startum = (y1>>8);
+	if ((y2>>8) < startdm) startdm = (y2>>8);
+
+	if (startum < -32768) startum = -32768;
+	if (startdm > 32767) startdm = 32767;
+	if (startum >= startdm) return;
+
+	if ((cstat&4) == 0)
+	{
+		linuminc = divscale24(xspan,xsiz);
+		linum = mulscale8((lx<<8)-x1,linuminc);
+	}
+	else
+	{
+		linuminc = -divscale24(xspan,xsiz);
+		linum = mulscale8((lx<<8)-x2,linuminc);
+	}
+	if ((cstat&8) > 0)
+	{
+		yinc = -yinc;
+		i = y1; y1 = y2; y2 = i;
+	}
+
+	for(x=lx;x<=rx;x++)
+	{
+		uwall[x] = max(startumost[x],(int16_t)startum);
+		dwall[x] = min(startdmost[x],(int16_t)startdm);
+	}
+	daclip = 0;
+	for(i=smostwallcnt-1;i>=0;i--)
+	{
+		if (smostwalltype[i]&daclip) continue;
+		j = smostwall[i];
+		if ((xb1[j] > rx) || (xb2[j] < lx)) continue;
+		if ((yp <= yb1[j]) && (yp <= yb2[j])) continue;
+		if (spritewallfront(tspr,(int32_t)thewall[j]) && ((yp <= yb1[j]) || (yp <= yb2[j]))) continue;
+
+		dalx2 = max(xb1[j],lx); darx2 = min(xb2[j],rx);
+
+		switch(smostwalltype[i])
+		{
+			case 0:
+				if (dalx2 <= darx2)
+				{
+					if ((dalx2 == lx) && (darx2 == rx)) return;
+					_fmemset(&dwall[dalx2], 0, (darx2 - dalx2 + 1) * sizeof(dwall[0]));
+				}
+				break;
+			case 1:
+				k = smoststart[i] - xb1[j];
+				for(x=dalx2;x<=darx2;x++)
+					if (smost[k+x] > uwall[x]) uwall[x] = smost[k+x];
+				if ((dalx2 == lx) && (darx2 == rx)) daclip |= 1;
+				break;
+			case 2:
+				k = smoststart[i] - xb1[j];
+				for(x=dalx2;x<=darx2;x++)
+					if (smost[k+x] < dwall[x]) dwall[x] = smost[k+x];
+				if ((dalx2 == lx) && (darx2 == rx)) daclip |= 2;
+				break;
+		}
+	}
+
+	if (uwall[rx] >= dwall[rx])
+	{
+		for(x=lx;x<rx;x++)
+			if (uwall[x] < dwall[x]) break;
+		if (x == rx) return;
+	}
+
+		//sprite
+	if ((searchit >= 1) && (searchx >= lx) && (searchx <= rx))
+		if ((searchy >= uwall[searchx]) && (searchy < dwall[searchx]))
+		{
+			searchsector = sectnum; searchwall = spritenum;
+			searchstat = 3; searchit = 1;
+		}
+
+	z2 = tspr->z - ((yoff*tspr->yrepeat)<<2);
+	if (cstat&128)
+	{
+		z2 += ((yspan*tspr->yrepeat)<<1);
+		if (yspan&1) z2 += (tspr->yrepeat<<1);        //Odd yspans
+	}
+	z1 = z2 - ((yspan*tspr->yrepeat)<<2);
+
+	globalorientation = 0;
+	globalpicnum = tilenum;
+	if ((uint32_t)globalpicnum >= (uint32_t)MAXTILES) globalpicnum = 0;
+	globalxpanning = 0L;
+	globalypanning = 0L;
+	globvis = globalvisibility;
+	if (sec->visibility != 0) globvis = mulscale4(globvis,(int32_t)((uint8_t)(sec->visibility+16)));
+	globalshiftval = (picsiz[globalpicnum]>>4);
+	if (pow2long[globalshiftval] != tilesizy[globalpicnum]) globalshiftval++;
+	globalshiftval = 32-globalshiftval;
+	globalyscale = divscale(512,tspr->yrepeat,globalshiftval-19);
+	globalzd = (((globalposz-z1)*globalyscale)<<8);
+	if ((cstat&8) > 0)
+	{
+		globalyscale = -globalyscale;
+		globalzd = (((globalposz-z2)*globalyscale)<<8);
+	}
+
+	qinterpolatedown16(&lwall[lx],rx-lx+1,linum,linuminc);
+	clearlongbuf(&swall[lx],mulscale19(yp,xdimscale),rx-lx+1);
+
+	if ((cstat&2) == 0)
+		maskwallscan(lx, rx, uwall, dwall, swall, lwall, globalpicnum);
+	else
+		transmaskwallscan(lx, rx, globalpicnum);
+}
+
+
+static void drawspriteWall(int32_t cstat, int32_t xoff, int32_t yoff,
+							int16_t tilenum, spritetype __far* tspr,
+							sectortype __far* sec, int32_t sectnum,
+							int32_t spritenum)
+{
+	int32_t xspan, yspan;
+	int32_t x1, y1, x2, y2, dalx2, darx2, i, j, k, x;
+	int32_t z, z1, z2, xp1, yp1, xp2, yp2;
+	int32_t xv, yv, top, topinc, bot, botinc, hplc, hinc;
+	int32_t y;
+	int32_t zz;
+	uint8_t swapped;
+	int16_t globalpicnum;
+
+	if ((cstat&4) > 0) xoff = -xoff;
+	if ((cstat&8) > 0) yoff = -yoff;
+
+	xspan = tilesizx[tilenum]; yspan = tilesizy[tilenum];
+	xv = tspr->xrepeat*(int32_t)sintable[(tspr->ang+2560+1536)&2047];
+	yv = tspr->xrepeat*(int32_t)sintable[(tspr->ang+2048+1536)&2047];
+	i = (xspan>>1)+xoff;
+	x1 = tspr->x-globalposx-mulscale16(xv,i); x2 = x1+mulscale16(xv,xspan);
+	y1 = tspr->y-globalposy-mulscale16(yv,i); y2 = y1+mulscale16(yv,xspan);
+
+	yp1 = dmulscale6(x1,cosviewingrangeglobalang,y1,sinviewingrangeglobalang);
+	yp2 = dmulscale6(x2,cosviewingrangeglobalang,y2,sinviewingrangeglobalang);
+	if ((yp1 <= 0) && (yp2 <= 0)) return;
+	xp1 = dmulscale6(y1,cosglobalang,-x1,singlobalang);
+	xp2 = dmulscale6(y2,cosglobalang,-x2,singlobalang);
+
+	x1 += globalposx; y1 += globalposy;
+	x2 += globalposx; y2 += globalposy;
+
+	swapped = 0;
+	if (dmulscale32(xp1,yp2,-xp2,yp1) >= 0)  //If wall's NOT facing you
+	{
+		if ((cstat&64) != 0) return;
+		i = xp1, xp1 = xp2, xp2 = i;
+		i = yp1, yp1 = yp2, yp2 = i;
+		i = x1, x1 = x2, x2 = i;
+		i = y1, y1 = y2, y2 = i;
+		swapped = 1;
+	}
+
+	if (xp1 >= -yp1)
+	{
+		if (xp1 > yp1) return;
+
+		if (yp1 == 0) return;
+		xb1[MAXWALLSB-1] = (XDIM>>1) + scale(xp1,(XDIM>>1),yp1);
+		if (xp1 >= 0) xb1[MAXWALLSB-1]++;   //Fix for SIGNED divide
+		if (xb1[MAXWALLSB-1] >= XDIM) xb1[MAXWALLSB-1] = XDIM-1;
+		yb1[MAXWALLSB-1] = yp1;
+	}
+	else
+	{
+		if (xp2 < -yp2) return;
+		xb1[MAXWALLSB-1] = 0;
+		i = yp1-yp2+xp1-xp2;
+		if (i == 0) return;
+		yb1[MAXWALLSB-1] = yp1 + scale(yp2-yp1,xp1+yp1,i);
+	}
+	if (xp2 <= yp2)
+	{
+		if (xp2 < -yp2) return;
+
+		if (yp2 == 0) return;
+		xb2[MAXWALLSB-1] = (XDIM>>1) + scale(xp2,(XDIM>>1),yp2) - 1;
+		if (xp2 >= 0) xb2[MAXWALLSB-1]++;   //Fix for SIGNED divide
+		if (xb2[MAXWALLSB-1] >= XDIM) xb2[MAXWALLSB-1] = XDIM-1;
+		yb2[MAXWALLSB-1] = yp2;
+	}
+	else
+	{
+		if (xp1 > yp1) return;
+
+		xb2[MAXWALLSB-1] = XDIM-1;
+		i = xp2-xp1+yp1-yp2;
+		if (i == 0) return;
+		yb2[MAXWALLSB-1] = yp1 + scale(yp2-yp1,yp1-xp1,i);
+	}
+
+	if ((yb1[MAXWALLSB-1] < 256) || (yb2[MAXWALLSB-1] < 256) || (xb1[MAXWALLSB-1] > xb2[MAXWALLSB-1]))
+		return;
+
+	topinc = -mulscale10(yp1,xspan);
+	top = (((mulscale10(xp1,XDIM) - mulscale9(xb1[MAXWALLSB-1]-(XDIM>>1),yp1))*xspan)>>3);
+	botinc = ((yp2-yp1)>>8);
+	bot = mulscale11(xp1-xp2,XDIM) + mulscale2(xb1[MAXWALLSB-1]-(XDIM>>1),botinc);
+
+	j = xb2[MAXWALLSB-1]+3;
+	z = mulscale20(top,krecip(bot));
+	lwall[xb1[MAXWALLSB-1]] = (z>>8);
+	for(x=xb1[MAXWALLSB-1]+4;x<=j;x+=4)
+	{
+		top += topinc; bot += botinc;
+		zz = z; z = mulscale20(top,krecip(bot));
+		lwall[x] = (z>>8);
+		i = ((z+zz)>>1);
+		lwall[x-2] = (i>>8);
+		lwall[x-3] = ((i+zz)>>9);
+		lwall[x-1] = ((i+z)>>9);
+	}
+
+	if (lwall[xb1[MAXWALLSB-1]] < 0) lwall[xb1[MAXWALLSB-1]] = 0;
+	if (lwall[xb2[MAXWALLSB-1]] >= xspan) lwall[xb2[MAXWALLSB-1]] = xspan-1;
+
+	if ((swapped^((cstat&4)>0)) > 0)
+	{
+		j = xspan-1;
+		for(x=xb1[MAXWALLSB-1];x<=xb2[MAXWALLSB-1];x++)
+			lwall[x] = j-lwall[x];
+	}
+
+	rx1[MAXWALLSB-1] = xp1; ry1[MAXWALLSB-1] = yp1;
+	rx2[MAXWALLSB-1] = xp2; ry2[MAXWALLSB-1] = yp2;
+
+	hplc = divscale19(xdimenscale,yb1[MAXWALLSB-1]);
+	hinc = divscale19(xdimenscale,yb2[MAXWALLSB-1]);
+	hinc = (hinc-hplc)/(xb2[MAXWALLSB-1]-xb1[MAXWALLSB-1]+1);
+
+	z2 = tspr->z - ((yoff*tspr->yrepeat)<<2);
+	if (cstat&128)
+	{
+		z2 += ((yspan*tspr->yrepeat)<<1);
+		if (yspan&1) z2 += (tspr->yrepeat<<1);        //Odd yspans
+	}
+	z1 = z2 - ((yspan*tspr->yrepeat)<<2);
+
+	globalorientation = 0;
+	globalpicnum = tilenum;
+	if ((uint32_t)globalpicnum >= (uint32_t)MAXTILES) globalpicnum = 0;
+	globalxpanning = 0L;
+	globalypanning = 0L;
+	globvis = globalvisibility;
+	if (sec->visibility != 0) globvis = mulscale4(globvis,(int32_t)((uint8_t)(sec->visibility+16)));
+	globalshiftval = (picsiz[globalpicnum]>>4);
+	if (pow2long[globalshiftval] != tilesizy[globalpicnum]) globalshiftval++;
+	globalshiftval = 32-globalshiftval;
+	globalyscale = divscale(512,tspr->yrepeat,globalshiftval-19);
+	globalzd = (((globalposz-z1)*globalyscale)<<8);
+	if ((cstat&8) > 0)
+	{
+		globalyscale = -globalyscale;
+		globalzd = (((globalposz-z2)*globalyscale)<<8);
+	}
+
+	if (((sec->ceilingstat&1) == 0) && (z1 < sec->ceilingz))
+		z1 = sec->ceilingz;
+	if (((sec->floorstat&1) == 0) && (z2 > sec->floorz))
+		z2 = sec->floorz;
+
+	owallmost(uwall,(int32_t)(MAXWALLSB-1),z1-globalposz);
+	owallmost(dwall,(int32_t)(MAXWALLSB-1),z2-globalposz);
+	for(i=xb1[MAXWALLSB-1];i<=xb2[MAXWALLSB-1];i++)
+		{ swall[i] = (krecip(hplc)<<2); hplc += hinc; }
+
+	for(i=smostwallcnt-1;i>=0;i--)
+	{
+		j = smostwall[i];
+
+		if ((xb1[j] > xb2[MAXWALLSB-1]) || (xb2[j] < xb1[MAXWALLSB-1])) continue;
+
+		dalx2 = xb1[j]; darx2 = xb2[j];
+		if (max(yb1[MAXWALLSB-1],yb2[MAXWALLSB-1]) > min(yb1[j],yb2[j]))
+		{
+			if (min(yb1[MAXWALLSB-1],yb2[MAXWALLSB-1]) > max(yb1[j],yb2[j]))
+			{
+				x = 0x80000000;
+			}
+			else
+			{
+				x = thewall[j]; xp1 = wall[x].x; yp1 = wall[x].y;
+				x = wall[x].point2; xp2 = wall[x].x; yp2 = wall[x].y;
+
+				z1 = (xp2-xp1)*(y1-yp1) - (yp2-yp1)*(x1-xp1);
+				z2 = (xp2-xp1)*(y2-yp1) - (yp2-yp1)*(x2-xp1);
+				if ((z1^z2) >= 0)
+					x = (z1+z2);
+				else
+				{
+					z1 = (x2-x1)*(yp1-y1) - (y2-y1)*(xp1-x1);
+					z2 = (x2-x1)*(yp2-y1) - (y2-y1)*(xp2-x1);
+
+					if ((z1^z2) >= 0)
+						x = -(z1+z2);
+					else
+					{
+						if ((xp2-xp1)*(tspr->y-yp1) == (tspr->x-xp1)*(yp2-yp1))
+						{
+							if (wall[thewall[j]].nextsector == tspr->sectnum)
+								x = 0x80000000;
+							else
+								x = 0x7fffffff;
+						}
+						else
+						{     //INTERSECTION!
+							x = (xp1-globalposx) + scale(xp2-xp1,z1,z1-z2);
+							y = (yp1-globalposy) + scale(yp2-yp1,z1,z1-z2);
+
+							yp1 = dmulscale14(x,cosglobalang,y,singlobalang);
+							if (yp1 > 0)
+							{
+								xp1 = dmulscale14(y,cosglobalang,-x,singlobalang);
+
+								x = (XDIM>>1) + scale(xp1,(XDIM>>1),yp1);
+								if (xp1 >= 0) x++;   //Fix for SIGNED divide
+
+								if (z1 < 0)
+									{ if (dalx2 < x) dalx2 = x; }
+								else
+									{ if (darx2 > x) darx2 = x; }
+								x = 0x80000001;
+							}
+							else
+								x = 0x7fffffff;
+						}
+					}
+				}
+			}
+			if (x < 0)
+			{
+				if (dalx2 < xb1[MAXWALLSB-1]) dalx2 = xb1[MAXWALLSB-1];
+				if (darx2 > xb2[MAXWALLSB-1]) darx2 = xb2[MAXWALLSB-1];
+				switch(smostwalltype[i])
+				{
+					case 0:
+						if (dalx2 <= darx2)
+						{
+							if ((dalx2 == xb1[MAXWALLSB-1]) && (darx2 == xb2[MAXWALLSB-1])) return;
+							_fmemset(&dwall[dalx2], 0, (darx2 - dalx2 + 1) * sizeof(dwall[0]));
+						}
+						break;
+					case 1:
+						k = smoststart[i] - xb1[j];
+						for(x=dalx2;x<=darx2;x++)
+							if (smost[k+x] > uwall[x]) uwall[x] = smost[k+x];
+						break;
+					case 2:
+						k = smoststart[i] - xb1[j];
+						for(x=dalx2;x<=darx2;x++)
+							if (smost[k+x] < dwall[x]) dwall[x] = smost[k+x];
+						break;
+				}
+			}
+		}
+	}
+
+		//sprite
+	if ((searchit >= 1) && (searchx >= xb1[MAXWALLSB-1]) && (searchx <= xb2[MAXWALLSB-1]))
+		if ((searchy >= uwall[searchx]) && (searchy <= dwall[searchx]))
+		{
+			searchsector = sectnum; searchwall = spritenum;
+			searchstat = 3; searchit = 1;
+		}
+
+	if ((cstat&2) == 0)
+		maskwallscan(xb1[MAXWALLSB - 1], xb2[MAXWALLSB - 1], uwall, dwall, swall, lwall, globalpicnum);
+	else
+		transmaskwallscan(xb1[MAXWALLSB - 1], xb2[MAXWALLSB - 1], globalpicnum);
+}
+
+
+static void drawspriteFloor(int32_t yp, spritetype __far* tspr, int16_t tilenum,
+							int32_t xoff, int32_t cstat,
+							int32_t yoff, sectortype __far* sec, int32_t sectnum,
+							int32_t spritenum)
+{
+	int32_t xspan, yspan;
+	int32_t lx, rx, dalx2, darx2, i, j, k, x;
+	int32_t yinc, z, z1, z2, xp1, yp1, xp2, yp2;
+	int32_t bot;
+	int32_t cosang, sinang, dax, day, lpoint, lmax, rpoint, rmax, dax1, dax2, y;
+	int32_t npoints, npoints2, zz, t, zsgn, zzsgn;
+	int16_t globalpicnum;
+	uint8_t __far* bufplc;
+
+	if ((cstat&64) != 0)
+		if ((globalposz > tspr->z) == ((cstat&8)==0))
+			return;
+
+	if ((cstat&4) > 0) xoff = -xoff;
+	if ((cstat&8) > 0) yoff = -yoff;
+	xspan = tilesizx[tilenum];
+	yspan = tilesizy[tilenum];
+
+		//Rotate center point
+	dax = tspr->x-globalposx;
+	day = tspr->y-globalposy;
+	rzi[0] = dmulscale10(cosglobalang,dax,singlobalang,day);
+	rxi[0] = dmulscale10(cosglobalang,day,-singlobalang,dax);
+
+		//Get top-left corner
+	i = ((tspr->ang+2048-globalang)&2047);
+	cosang = sintable[(i+512)&2047]; sinang = sintable[i];
+	dax = ((xspan>>1)+xoff)*tspr->xrepeat;
+	day = ((yspan>>1)+yoff)*tspr->yrepeat;
+	rzi[0] += dmulscale12(sinang,dax,cosang,day);
+	rxi[0] += dmulscale12(sinang,day,-cosang,dax);
+
+		//Get other 3 corners
+	dax = xspan*tspr->xrepeat;
+	day = yspan*tspr->yrepeat;
+	rzi[1] = rzi[0]-mulscale12(sinang,dax);
+	rxi[1] = rxi[0]+mulscale12(cosang,dax);
+	dax = -mulscale12(cosang,day);
+	day = -mulscale12(sinang,day);
+	rzi[2] = rzi[1]+dax; rxi[2] = rxi[1]+day;
+	rzi[3] = rzi[0]+dax; rxi[3] = rxi[0]+day;
+
+		//Put all points on same z
+	ryi[0] = scale((tspr->z - globalposz), yxaspect, (int32_t)XDIM << 8);
+	if (ryi[0] == 0) return;
+	ryi[1] = ryi[2] = ryi[3] = ryi[0];
+
+	if ((cstat&4) == 0)
+		{ z = 0; z1 = 1; z2 = 3; }
+	else
+		{ z = 1; z1 = 0; z2 = 2; }
+
+	dax = rzi[z1]-rzi[z]; day = rxi[z1]-rxi[z];
+	bot = dmulscale8(dax,dax,day,day);
+	if (((klabs(dax)>>13) >= bot) || ((klabs(day)>>13) >= bot)) return;
+	globalx1 = divscale18(dax,bot);
+	globalx2 = divscale18(day,bot);
+
+	dax = rzi[z2]-rzi[z]; day = rxi[z2]-rxi[z];
+	bot = dmulscale8(dax,dax,day,day);
+	if (((klabs(dax)>>13) >= bot) || ((klabs(day)>>13) >= bot)) return;
+	globaly1 = divscale18(dax,bot);
+	globaly2 = divscale18(day,bot);
+
+		//Calculate globals for hline texture mapping function
+	globalxpanning = (rxi[z]<<12);
+	globalypanning = (rzi[z]<<12);
+	globalzd = (ryi[z]<<12);
+
+	rzi[0] = mulscale16(rzi[0],viewingrange);
+	rzi[1] = mulscale16(rzi[1],viewingrange);
+	rzi[2] = mulscale16(rzi[2],viewingrange);
+	rzi[3] = mulscale16(rzi[3],viewingrange);
+
+	if (ryi[0] < 0)   //If ceilsprite is above you, reverse order of points
+	{
+		i = rxi[1]; rxi[1] = rxi[3]; rxi[3] = i;
+		i = rzi[1]; rzi[1] = rzi[3]; rzi[3] = i;
+	}
+
+		//Clip polygon in 3-space
+	npoints = 4;
+
+		//Clip edge 1
+	npoints2 = 0;
+	zzsgn = rxi[0]+rzi[0];
+	for(z=0;z<npoints;z++)
+	{
+		zz = z+1; if (zz == npoints) zz = 0;
+		zsgn = zzsgn; zzsgn = rxi[zz]+rzi[zz];
+		if (zsgn >= 0)
+		{
+			rxi2[npoints2] = rxi[z]; ryi2[npoints2] = ryi[z]; rzi2[npoints2] = rzi[z];
+			npoints2++;
+		}
+		if ((zsgn^zzsgn) < 0)
+		{
+			t = divscale30(zsgn,zsgn-zzsgn);
+			rxi2[npoints2] = rxi[z] + mulscale30(t,rxi[zz]-rxi[z]);
+			ryi2[npoints2] = ryi[z] + mulscale30(t,ryi[zz]-ryi[z]);
+			rzi2[npoints2] = rzi[z] + mulscale30(t,rzi[zz]-rzi[z]);
+			npoints2++;
+		}
+	}
+	if (npoints2 <= 2) return;
+
+		//Clip edge 2
+	npoints = 0;
+	zzsgn = rxi2[0]-rzi2[0];
+	for(z=0;z<npoints2;z++)
+	{
+		zz = z+1; if (zz == npoints2) zz = 0;
+		zsgn = zzsgn; zzsgn = rxi2[zz]-rzi2[zz];
+		if (zsgn <= 0)
+		{
+			rxi[npoints] = rxi2[z]; ryi[npoints] = ryi2[z]; rzi[npoints] = rzi2[z];
+			npoints++;
+		}
+		if ((zsgn^zzsgn) < 0)
+		{
+			t = divscale30(zsgn,zsgn-zzsgn);
+			rxi[npoints] = rxi2[z] + mulscale30(t,rxi2[zz]-rxi2[z]);
+			ryi[npoints] = ryi2[z] + mulscale30(t,ryi2[zz]-ryi2[z]);
+			rzi[npoints] = rzi2[z] + mulscale30(t,rzi2[zz]-rzi2[z]);
+			npoints++;
+		}
+	}
+	if (npoints <= 2) return;
+
+		//Clip edge 3
+	npoints2 = 0;
+	zzsgn = ryi[0]*(XDIM>>1) + (rzi[0]*(globalhoriz-0));
+	for(z=0;z<npoints;z++)
+	{
+		zz = z+1; if (zz == npoints) zz = 0;
+		zsgn = zzsgn; zzsgn = ryi[zz]*(XDIM>>1) + (rzi[zz]*(globalhoriz-0));
+		if (zsgn >= 0)
+		{
+			rxi2[npoints2] = rxi[z];
+			ryi2[npoints2] = ryi[z];
+			rzi2[npoints2] = rzi[z];
+			npoints2++;
+		}
+		if ((zsgn^zzsgn) < 0)
+		{
+			t = divscale30(zsgn,zsgn-zzsgn);
+			rxi2[npoints2] = rxi[z] + mulscale30(t,rxi[zz]-rxi[z]);
+			ryi2[npoints2] = ryi[z] + mulscale30(t,ryi[zz]-ryi[z]);
+			rzi2[npoints2] = rzi[z] + mulscale30(t,rzi[zz]-rzi[z]);
+			npoints2++;
+		}
+	}
+	if (npoints2 <= 2) return;
+
+		//Clip edge 4
+	npoints = 0;
+	zzsgn = ryi2[0]*(XDIM>>1) + (rzi2[0]*(globalhoriz-YDIM));
+	for(z=0;z<npoints2;z++)
+	{
+		zz = z+1; if (zz == npoints2) zz = 0;
+		zsgn = zzsgn; zzsgn = ryi2[zz]*(XDIM>>1) + (rzi2[zz]*(globalhoriz-YDIM));
+		if (zsgn <= 0)
+		{
+			rxi[npoints] = rxi2[z];
+			ryi[npoints] = ryi2[z];
+			rzi[npoints] = rzi2[z];
+			npoints++;
+		}
+		if ((zsgn^zzsgn) < 0)
+		{
+			t = divscale30(zsgn,zsgn-zzsgn);
+			rxi[npoints] = rxi2[z] + mulscale30(t,rxi2[zz]-rxi2[z]);
+			ryi[npoints] = ryi2[z] + mulscale30(t,ryi2[zz]-ryi2[z]);
+			rzi[npoints] = rzi2[z] + mulscale30(t,rzi2[zz]-rzi2[z]);
+			npoints++;
+		}
+	}
+	if (npoints <= 2) return;
+
+		//Project onto screen
+	lpoint = -1; lmax = 0x7fffffff;
+	rpoint = -1; rmax = 0x80000000;
+	for(z=0;z<npoints;z++)
+	{
+		xsi[z] = scale(rxi[z], (int32_t)XDIM << 15, rzi[z]) + ((int32_t)XDIM << 15);
+		ysi[z] = scale(ryi[z], (int32_t)XDIM << 15, rzi[z]) + (globalhoriz << 16);
+		if (xsi[z] < 0) xsi[z] = 0;
+		if (xsi[z] > ((int32_t)XDIM<<16)) xsi[z] = ((int32_t)XDIM<<16);
+		if (ysi[z] < ((int32_t)0<<16)) ysi[z] = ((int32_t)0<<16);
+		if (ysi[z] > ((int32_t)YDIM<<16)) ysi[z] = ((int32_t)YDIM<<16);
+		if (xsi[z] < lmax) lmax = xsi[z], lpoint = z;
+		if (xsi[z] > rmax) rmax = xsi[z], rpoint = z;
+	}
+
+		//Get uwall arrays
+	for(z=lpoint;z!=rpoint;z=zz)
+	{
+		zz = z+1; if (zz == npoints) zz = 0;
+
+		dax1 = ((xsi[z]+65535)>>16);
+		dax2 = ((xsi[zz]+65535)>>16);
+		if (dax2 > dax1)
+		{
+			yinc = divscale16(ysi[zz]-ysi[z],xsi[zz]-xsi[z]);
+			y = ysi[z] + mulscale16((dax1<<16)-xsi[z],yinc);
+			qinterpolatedown16short(&uwall[dax1],dax2-dax1,y,yinc);
+		}
+	}
+
+		//Get dwall arrays
+	for(;z!=lpoint;z=zz)
+	{
+		zz = z+1; if (zz == npoints) zz = 0;
+
+		dax1 = ((xsi[zz]+65535)>>16);
+		dax2 = ((xsi[z]+65535)>>16);
+		if (dax2 > dax1)
+		{
+			yinc = divscale16(ysi[zz]-ysi[z],xsi[zz]-xsi[z]);
+			y = ysi[zz] + mulscale16((dax1<<16)-xsi[zz],yinc);
+			qinterpolatedown16short(&dwall[dax1],dax2-dax1,y,yinc);
+		}
+	}
+
+	lx = ((lmax+65535)>>16);
+	rx = ((rmax+65535)>>16);
+	for(x=lx;x<=rx;x++)
+	{
+		uwall[x] = max(uwall[x],startumost[x]);
+		dwall[x] = min(dwall[x],startdmost[x]);
+	}
+
+		//Additional uwall/dwall clipping goes here
+	for(i=smostwallcnt-1;i>=0;i--)
+	{
+		j = smostwall[i];
+		if ((xb1[j] > rx) || (xb2[j] < lx)) continue;
+		if ((yp <= yb1[j]) && (yp <= yb2[j])) continue;
+
+			//if (spritewallfront(tspr,thewall[j]) == 0)
+		x = thewall[j]; xp1 = wall[x].x; yp1 = wall[x].y;
+		x = wall[x].point2; xp2 = wall[x].x; yp2 = wall[x].y;
+		x = (xp2-xp1)*(tspr->y-yp1)-(tspr->x-xp1)*(yp2-yp1);
+		if ((yp > yb1[j]) && (yp > yb2[j])) x = -1;
+		if ((x >= 0) && ((x != 0) || (wall[thewall[j]].nextsector != tspr->sectnum))) continue;
+
+		dalx2 = max(xb1[j],lx); darx2 = min(xb2[j],rx);
+
+		switch(smostwalltype[i])
+		{
+			case 0:
+				if (dalx2 <= darx2)
+				{
+					if ((dalx2 == lx) && (darx2 == rx)) return;
+					_fmemset(&dwall[dalx2], 0, (darx2 - dalx2 + 1) * sizeof(dwall[0]));
+				}
+				break;
+			case 1:
+				k = smoststart[i] - xb1[j];
+				for(x=dalx2;x<=darx2;x++)
+					if (smost[k+x] > uwall[x]) uwall[x] = smost[k+x];
+				break;
+			case 2:
+				k = smoststart[i] - xb1[j];
+				for(x=dalx2;x<=darx2;x++)
+					if (smost[k+x] < dwall[x]) dwall[x] = smost[k+x];
+				break;
+		}
+	}
+
+		//sprite
+	if ((searchit >= 1) && (searchx >= lx) && (searchx <= rx))
+		if ((searchy >= uwall[searchx]) && (searchy <= dwall[searchx]))
+		{
+			searchsector = sectnum; searchwall = spritenum;
+			searchstat = 3; searchit = 1;
+		}
+
+	globalorientation = cstat;
+	globalpicnum = tilenum;
+	if ((uint32_t)globalpicnum >= (uint32_t)MAXTILES) globalpicnum = 0;
+	//if (picanm[globalpicnum]&192) globalpicnum += animateoffs(globalpicnum);
+
+	bufplc = loadtile(globalpicnum);
+
+	globvis = mulscale16(globalhisibility,viewingrange);
+	if (sec->visibility != 0) globvis = mulscale4(globvis,(int32_t)((uint8_t)(sec->visibility+16)));
+
+	x = picsiz[globalpicnum]; y = ((x>>4)&15); x &= 15;
+	if (pow2long[x] != xspan)
+	{
+		x++;
+		globalx1 = mulscale(globalx1,xspan,x);
+		globalx2 = mulscale(globalx2,xspan,x);
+	}
+
+	dax = globalxpanning; day = globalypanning;
+	globalxpanning = -dmulscale6(globalx1,day,globalx2,dax);
+	globalypanning = -dmulscale6(globaly1,day,globaly2,dax);
+
+	globalx2 = mulscale16(globalx2,viewingrange);
+	globaly2 = mulscale16(globaly2,viewingrange);
+	globalzd = mulscale16(globalzd,viewingrangerecip);
+
+	globalx1 = (globalx1-globalx2)*(XDIM>>1);
+	globaly1 = (globaly1-globaly2)*(XDIM>>1);
+
+	_a_glogx = x;
+	_a_glogy = y;
+
+		//Draw it!
+	ceilspritescan(lx, rx - 1, bufplc);
+
+	Z_ChangeTagToCache(bufplc);
+}
+
+
 void drawsprite (int32_t snum)
 {
 	spritetype __far* tspr;
 	sectortype __far* sec;
-	int32_t startum, startdm, sectnum, xb, yp, cstat;
-	int32_t siz, xsiz, ysiz, xoff, yoff, xspan, yspan;
-	int32_t x1, y1, x2, y2, lx, rx, dalx2, darx2, i, j, k, x, linum, linuminc;
-	int32_t yinc, z, z1, z2, xp1, yp1, xp2, yp2;
-	int32_t xv, yv, top, topinc, bot, botinc, hplc, hinc;
-	int32_t cosang, sinang, dax, day, lpoint, lmax, rpoint, rmax, dax1, dax2, y;
-	int32_t npoints, npoints2, zz, t, zsgn, zzsgn;
+	int32_t sectnum, xb, yp, cstat;
+	int32_t xoff, yoff;
 	int16_t tilenum, spritenum;
-	uint8_t swapped, daclip;
-	int16_t globalpicnum;
-	uint8_t __far* bufplc;
 
 	tspr = tspriteptr[snum];
 
@@ -1147,722 +1897,9 @@ void drawsprite (int32_t snum)
 	yoff = (int32_t)((int8_t)((picanm[tilenum]>>16)&255))+((int32_t)tspr->yoffset);
 
 	if ((cstat&48) == 0)
-	{
-		if (yp <= (4<<8)) return;
-
-		siz = divscale19(xdimenscale,yp);
-
-		xv = mulscale16(((int32_t)tspr->xrepeat)<<16,xyaspect);
-
-		xspan = tilesizx[tilenum];
-		yspan = tilesizy[tilenum];
-		xsiz = mulscale30(siz,xv*xspan);
-		ysiz = mulscale14(siz,tspr->yrepeat*yspan);
-
-		if (((tilesizx[tilenum]>>11) >= xsiz) || (yspan >= (ysiz>>1)))
-			return;  //Watch out for divscale overflow
-
-		x1 = xb-(xsiz>>1);
-		if (xspan&1) x1 += mulscale31(siz,xv);  //Odd xspans
-		i = mulscale30(siz,xv*xoff);
-		if ((cstat&4) == 0) x1 -= i; else x1 += i;
-
-		y1 = mulscale16(tspr->z-globalposz,siz);
-		y1 -= mulscale14(siz,tspr->yrepeat*yoff);
-		y1 += (globalhoriz<<8)-ysiz;
-		if (cstat&128)
-		{
-			y1 += (ysiz>>1);
-			if (yspan&1) y1 += mulscale15(siz,tspr->yrepeat);  //Odd yspans
-		}
-
-		x2 = x1+xsiz-1;
-		y2 = y1+ysiz-1;
-		if ((y1|255) >= (y2|255)) return;
-
-		lx = (x1>>8)+1; if (lx < 0) lx = 0;
-		rx = (x2>>8); if (rx >= XDIM) rx = XDIM-1;
-		if (lx > rx) return;
-
-		yinc = divscale32(yspan,ysiz);
-
-		if ((sec->ceilingstat&3) == 0)
-			startum = globalhoriz+mulscale24(siz,sec->ceilingz-globalposz)-1;
-		else
-			startum = 0;
-		if ((sec->floorstat&3) == 0)
-			startdm = globalhoriz+mulscale24(siz,sec->floorz-globalposz)+1;
-		else
-			startdm = 0x7fffffff;
-		if ((y1>>8) > startum) startum = (y1>>8);
-		if ((y2>>8) < startdm) startdm = (y2>>8);
-
-		if (startum < -32768) startum = -32768;
-		if (startdm > 32767) startdm = 32767;
-		if (startum >= startdm) return;
-
-		if ((cstat&4) == 0)
-		{
-			linuminc = divscale24(xspan,xsiz);
-			linum = mulscale8((lx<<8)-x1,linuminc);
-		}
-		else
-		{
-			linuminc = -divscale24(xspan,xsiz);
-			linum = mulscale8((lx<<8)-x2,linuminc);
-		}
-		if ((cstat&8) > 0)
-		{
-			yinc = -yinc;
-			i = y1; y1 = y2; y2 = i;
-		}
-
-		for(x=lx;x<=rx;x++)
-		{
-			uwall[x] = max(startumost[x],(int16_t)startum);
-			dwall[x] = min(startdmost[x],(int16_t)startdm);
-		}
-		daclip = 0;
-		for(i=smostwallcnt-1;i>=0;i--)
-		{
-			if (smostwalltype[i]&daclip) continue;
-			j = smostwall[i];
-			if ((xb1[j] > rx) || (xb2[j] < lx)) continue;
-			if ((yp <= yb1[j]) && (yp <= yb2[j])) continue;
-			if (spritewallfront(tspr,(int32_t)thewall[j]) && ((yp <= yb1[j]) || (yp <= yb2[j]))) continue;
-
-			dalx2 = max(xb1[j],lx); darx2 = min(xb2[j],rx);
-
-			switch(smostwalltype[i])
-			{
-				case 0:
-					if (dalx2 <= darx2)
-					{
-						if ((dalx2 == lx) && (darx2 == rx)) return;
-						_fmemset(&dwall[dalx2], 0, (darx2 - dalx2 + 1) * sizeof(dwall[0]));
-					}
-					break;
-				case 1:
-					k = smoststart[i] - xb1[j];
-					for(x=dalx2;x<=darx2;x++)
-						if (smost[k+x] > uwall[x]) uwall[x] = smost[k+x];
-					if ((dalx2 == lx) && (darx2 == rx)) daclip |= 1;
-					break;
-				case 2:
-					k = smoststart[i] - xb1[j];
-					for(x=dalx2;x<=darx2;x++)
-						if (smost[k+x] < dwall[x]) dwall[x] = smost[k+x];
-					if ((dalx2 == lx) && (darx2 == rx)) daclip |= 2;
-					break;
-			}
-		}
-
-		if (uwall[rx] >= dwall[rx])
-		{
-			for(x=lx;x<rx;x++)
-				if (uwall[x] < dwall[x]) break;
-			if (x == rx) return;
-		}
-
-			//sprite
-		if ((searchit >= 1) && (searchx >= lx) && (searchx <= rx))
-			if ((searchy >= uwall[searchx]) && (searchy < dwall[searchx]))
-			{
-				searchsector = sectnum; searchwall = spritenum;
-				searchstat = 3; searchit = 1;
-			}
-
-		z2 = tspr->z - ((yoff*tspr->yrepeat)<<2);
-		if (cstat&128)
-		{
-			z2 += ((yspan*tspr->yrepeat)<<1);
-			if (yspan&1) z2 += (tspr->yrepeat<<1);        //Odd yspans
-		}
-		z1 = z2 - ((yspan*tspr->yrepeat)<<2);
-
-		globalorientation = 0;
-		globalpicnum = tilenum;
-		if ((uint32_t)globalpicnum >= (uint32_t)MAXTILES) globalpicnum = 0;
-		globalxpanning = 0L;
-		globalypanning = 0L;
-		globvis = globalvisibility;
-		if (sec->visibility != 0) globvis = mulscale4(globvis,(int32_t)((uint8_t)(sec->visibility+16)));
-		globalshiftval = (picsiz[globalpicnum]>>4);
-		if (pow2long[globalshiftval] != tilesizy[globalpicnum]) globalshiftval++;
-		globalshiftval = 32-globalshiftval;
-		globalyscale = divscale(512,tspr->yrepeat,globalshiftval-19);
-		globalzd = (((globalposz-z1)*globalyscale)<<8);
-		if ((cstat&8) > 0)
-		{
-			globalyscale = -globalyscale;
-			globalzd = (((globalposz-z2)*globalyscale)<<8);
-		}
-
-		qinterpolatedown16(&lwall[lx],rx-lx+1,linum,linuminc);
-		clearlongbuf(&swall[lx],mulscale19(yp,xdimscale),rx-lx+1);
-
-		if ((cstat&2) == 0)
-			maskwallscan(lx, rx, uwall, dwall, swall, lwall, globalpicnum);
-		else
-			transmaskwallscan(lx, rx, globalpicnum);
-	}
+		drawspriteFace(yp, tspr, tilenum, xb, xoff, cstat, yoff, sec, sectnum, spritenum);
 	else if ((cstat&48) == 16)
-	{
-		if ((cstat&4) > 0) xoff = -xoff;
-		if ((cstat&8) > 0) yoff = -yoff;
-
-		xspan = tilesizx[tilenum]; yspan = tilesizy[tilenum];
-		xv = tspr->xrepeat*(int32_t)sintable[(tspr->ang+2560+1536)&2047];
-		yv = tspr->xrepeat*(int32_t)sintable[(tspr->ang+2048+1536)&2047];
-		i = (xspan>>1)+xoff;
-		x1 = tspr->x-globalposx-mulscale16(xv,i); x2 = x1+mulscale16(xv,xspan);
-		y1 = tspr->y-globalposy-mulscale16(yv,i); y2 = y1+mulscale16(yv,xspan);
-
-		yp1 = dmulscale6(x1,cosviewingrangeglobalang,y1,sinviewingrangeglobalang);
-		yp2 = dmulscale6(x2,cosviewingrangeglobalang,y2,sinviewingrangeglobalang);
-		if ((yp1 <= 0) && (yp2 <= 0)) return;
-		xp1 = dmulscale6(y1,cosglobalang,-x1,singlobalang);
-		xp2 = dmulscale6(y2,cosglobalang,-x2,singlobalang);
-
-		x1 += globalposx; y1 += globalposy;
-		x2 += globalposx; y2 += globalposy;
-
-		swapped = 0;
-		if (dmulscale32(xp1,yp2,-xp2,yp1) >= 0)  //If wall's NOT facing you
-		{
-			if ((cstat&64) != 0) return;
-			i = xp1, xp1 = xp2, xp2 = i;
-			i = yp1, yp1 = yp2, yp2 = i;
-			i = x1, x1 = x2, x2 = i;
-			i = y1, y1 = y2, y2 = i;
-			swapped = 1;
-		}
-
-		if (xp1 >= -yp1)
-		{
-			if (xp1 > yp1) return;
-
-			if (yp1 == 0) return;
-			xb1[MAXWALLSB-1] = (XDIM>>1) + scale(xp1,(XDIM>>1),yp1);
-			if (xp1 >= 0) xb1[MAXWALLSB-1]++;   //Fix for SIGNED divide
-			if (xb1[MAXWALLSB-1] >= XDIM) xb1[MAXWALLSB-1] = XDIM-1;
-			yb1[MAXWALLSB-1] = yp1;
-		}
-		else
-		{
-			if (xp2 < -yp2) return;
-			xb1[MAXWALLSB-1] = 0;
-			i = yp1-yp2+xp1-xp2;
-			if (i == 0) return;
-			yb1[MAXWALLSB-1] = yp1 + scale(yp2-yp1,xp1+yp1,i);
-		}
-		if (xp2 <= yp2)
-		{
-			if (xp2 < -yp2) return;
-
-			if (yp2 == 0) return;
-			xb2[MAXWALLSB-1] = (XDIM>>1) + scale(xp2,(XDIM>>1),yp2) - 1;
-			if (xp2 >= 0) xb2[MAXWALLSB-1]++;   //Fix for SIGNED divide
-			if (xb2[MAXWALLSB-1] >= XDIM) xb2[MAXWALLSB-1] = XDIM-1;
-			yb2[MAXWALLSB-1] = yp2;
-		}
-		else
-		{
-			if (xp1 > yp1) return;
-
-			xb2[MAXWALLSB-1] = XDIM-1;
-			i = xp2-xp1+yp1-yp2;
-			if (i == 0) return;
-			yb2[MAXWALLSB-1] = yp1 + scale(yp2-yp1,yp1-xp1,i);
-		}
-
-		if ((yb1[MAXWALLSB-1] < 256) || (yb2[MAXWALLSB-1] < 256) || (xb1[MAXWALLSB-1] > xb2[MAXWALLSB-1]))
-			return;
-
-		topinc = -mulscale10(yp1,xspan);
-		top = (((mulscale10(xp1,XDIM) - mulscale9(xb1[MAXWALLSB-1]-(XDIM>>1),yp1))*xspan)>>3);
-		botinc = ((yp2-yp1)>>8);
-		bot = mulscale11(xp1-xp2,XDIM) + mulscale2(xb1[MAXWALLSB-1]-(XDIM>>1),botinc);
-
-		j = xb2[MAXWALLSB-1]+3;
-		z = mulscale20(top,krecip(bot));
-		lwall[xb1[MAXWALLSB-1]] = (z>>8);
-		for(x=xb1[MAXWALLSB-1]+4;x<=j;x+=4)
-		{
-			top += topinc; bot += botinc;
-			zz = z; z = mulscale20(top,krecip(bot));
-			lwall[x] = (z>>8);
-			i = ((z+zz)>>1);
-			lwall[x-2] = (i>>8);
-			lwall[x-3] = ((i+zz)>>9);
-			lwall[x-1] = ((i+z)>>9);
-		}
-
-		if (lwall[xb1[MAXWALLSB-1]] < 0) lwall[xb1[MAXWALLSB-1]] = 0;
-		if (lwall[xb2[MAXWALLSB-1]] >= xspan) lwall[xb2[MAXWALLSB-1]] = xspan-1;
-
-		if ((swapped^((cstat&4)>0)) > 0)
-		{
-			j = xspan-1;
-			for(x=xb1[MAXWALLSB-1];x<=xb2[MAXWALLSB-1];x++)
-				lwall[x] = j-lwall[x];
-		}
-
-		rx1[MAXWALLSB-1] = xp1; ry1[MAXWALLSB-1] = yp1;
-		rx2[MAXWALLSB-1] = xp2; ry2[MAXWALLSB-1] = yp2;
-
-		hplc = divscale19(xdimenscale,yb1[MAXWALLSB-1]);
-		hinc = divscale19(xdimenscale,yb2[MAXWALLSB-1]);
-		hinc = (hinc-hplc)/(xb2[MAXWALLSB-1]-xb1[MAXWALLSB-1]+1);
-
-		z2 = tspr->z - ((yoff*tspr->yrepeat)<<2);
-		if (cstat&128)
-		{
-			z2 += ((yspan*tspr->yrepeat)<<1);
-			if (yspan&1) z2 += (tspr->yrepeat<<1);        //Odd yspans
-		}
-		z1 = z2 - ((yspan*tspr->yrepeat)<<2);
-
-		globalorientation = 0;
-		globalpicnum = tilenum;
-		if ((uint32_t)globalpicnum >= (uint32_t)MAXTILES) globalpicnum = 0;
-		globalxpanning = 0L;
-		globalypanning = 0L;
-		globvis = globalvisibility;
-		if (sec->visibility != 0) globvis = mulscale4(globvis,(int32_t)((uint8_t)(sec->visibility+16)));
-		globalshiftval = (picsiz[globalpicnum]>>4);
-		if (pow2long[globalshiftval] != tilesizy[globalpicnum]) globalshiftval++;
-		globalshiftval = 32-globalshiftval;
-		globalyscale = divscale(512,tspr->yrepeat,globalshiftval-19);
-		globalzd = (((globalposz-z1)*globalyscale)<<8);
-		if ((cstat&8) > 0)
-		{
-			globalyscale = -globalyscale;
-			globalzd = (((globalposz-z2)*globalyscale)<<8);
-		}
-
-		if (((sec->ceilingstat&1) == 0) && (z1 < sec->ceilingz))
-			z1 = sec->ceilingz;
-		if (((sec->floorstat&1) == 0) && (z2 > sec->floorz))
-			z2 = sec->floorz;
-
-		owallmost(uwall,(int32_t)(MAXWALLSB-1),z1-globalposz);
-		owallmost(dwall,(int32_t)(MAXWALLSB-1),z2-globalposz);
-		for(i=xb1[MAXWALLSB-1];i<=xb2[MAXWALLSB-1];i++)
-			{ swall[i] = (krecip(hplc)<<2); hplc += hinc; }
-
-		for(i=smostwallcnt-1;i>=0;i--)
-		{
-			j = smostwall[i];
-
-			if ((xb1[j] > xb2[MAXWALLSB-1]) || (xb2[j] < xb1[MAXWALLSB-1])) continue;
-
-			dalx2 = xb1[j]; darx2 = xb2[j];
-			if (max(yb1[MAXWALLSB-1],yb2[MAXWALLSB-1]) > min(yb1[j],yb2[j]))
-			{
-				if (min(yb1[MAXWALLSB-1],yb2[MAXWALLSB-1]) > max(yb1[j],yb2[j]))
-				{
-					x = 0x80000000;
-				}
-				else
-				{
-					x = thewall[j]; xp1 = wall[x].x; yp1 = wall[x].y;
-					x = wall[x].point2; xp2 = wall[x].x; yp2 = wall[x].y;
-
-					z1 = (xp2-xp1)*(y1-yp1) - (yp2-yp1)*(x1-xp1);
-					z2 = (xp2-xp1)*(y2-yp1) - (yp2-yp1)*(x2-xp1);
-					if ((z1^z2) >= 0)
-						x = (z1+z2);
-					else
-					{
-						z1 = (x2-x1)*(yp1-y1) - (y2-y1)*(xp1-x1);
-						z2 = (x2-x1)*(yp2-y1) - (y2-y1)*(xp2-x1);
-
-						if ((z1^z2) >= 0)
-							x = -(z1+z2);
-						else
-						{
-							if ((xp2-xp1)*(tspr->y-yp1) == (tspr->x-xp1)*(yp2-yp1))
-							{
-								if (wall[thewall[j]].nextsector == tspr->sectnum)
-									x = 0x80000000;
-								else
-									x = 0x7fffffff;
-							}
-							else
-							{     //INTERSECTION!
-								x = (xp1-globalposx) + scale(xp2-xp1,z1,z1-z2);
-								y = (yp1-globalposy) + scale(yp2-yp1,z1,z1-z2);
-
-								yp1 = dmulscale14(x,cosglobalang,y,singlobalang);
-								if (yp1 > 0)
-								{
-									xp1 = dmulscale14(y,cosglobalang,-x,singlobalang);
-
-									x = (XDIM>>1) + scale(xp1,(XDIM>>1),yp1);
-									if (xp1 >= 0) x++;   //Fix for SIGNED divide
-
-									if (z1 < 0)
-										{ if (dalx2 < x) dalx2 = x; }
-									else
-										{ if (darx2 > x) darx2 = x; }
-									x = 0x80000001;
-								}
-								else
-									x = 0x7fffffff;
-							}
-						}
-					}
-				}
-				if (x < 0)
-				{
-					if (dalx2 < xb1[MAXWALLSB-1]) dalx2 = xb1[MAXWALLSB-1];
-					if (darx2 > xb2[MAXWALLSB-1]) darx2 = xb2[MAXWALLSB-1];
-					switch(smostwalltype[i])
-					{
-						case 0:
-							if (dalx2 <= darx2)
-							{
-								if ((dalx2 == xb1[MAXWALLSB-1]) && (darx2 == xb2[MAXWALLSB-1])) return;
-								_fmemset(&dwall[dalx2], 0, (darx2 - dalx2 + 1) * sizeof(dwall[0]));
-							}
-							break;
-						case 1:
-							k = smoststart[i] - xb1[j];
-							for(x=dalx2;x<=darx2;x++)
-								if (smost[k+x] > uwall[x]) uwall[x] = smost[k+x];
-							break;
-						case 2:
-							k = smoststart[i] - xb1[j];
-							for(x=dalx2;x<=darx2;x++)
-								if (smost[k+x] < dwall[x]) dwall[x] = smost[k+x];
-							break;
-					}
-				}
-			}
-		}
-
-			//sprite
-		if ((searchit >= 1) && (searchx >= xb1[MAXWALLSB-1]) && (searchx <= xb2[MAXWALLSB-1]))
-			if ((searchy >= uwall[searchx]) && (searchy <= dwall[searchx]))
-			{
-				searchsector = sectnum; searchwall = spritenum;
-				searchstat = 3; searchit = 1;
-			}
-
-		if ((cstat&2) == 0)
-			maskwallscan(xb1[MAXWALLSB - 1], xb2[MAXWALLSB - 1], uwall, dwall, swall, lwall, globalpicnum);
-		else
-			transmaskwallscan(xb1[MAXWALLSB - 1], xb2[MAXWALLSB - 1], globalpicnum);
-	}
+		drawspriteWall(cstat, xoff, yoff, tilenum, tspr, sec, sectnum, spritenum);
 	else if ((cstat&48) == 32)
-	{
-		if ((cstat&64) != 0)
-			if ((globalposz > tspr->z) == ((cstat&8)==0))
-				return;
-
-		if ((cstat&4) > 0) xoff = -xoff;
-		if ((cstat&8) > 0) yoff = -yoff;
-		xspan = tilesizx[tilenum];
-		yspan = tilesizy[tilenum];
-
-			//Rotate center point
-		dax = tspr->x-globalposx;
-		day = tspr->y-globalposy;
-		rzi[0] = dmulscale10(cosglobalang,dax,singlobalang,day);
-		rxi[0] = dmulscale10(cosglobalang,day,-singlobalang,dax);
-
-			//Get top-left corner
-		i = ((tspr->ang+2048-globalang)&2047);
-		cosang = sintable[(i+512)&2047]; sinang = sintable[i];
-		dax = ((xspan>>1)+xoff)*tspr->xrepeat;
-		day = ((yspan>>1)+yoff)*tspr->yrepeat;
-		rzi[0] += dmulscale12(sinang,dax,cosang,day);
-		rxi[0] += dmulscale12(sinang,day,-cosang,dax);
-
-			//Get other 3 corners
-		dax = xspan*tspr->xrepeat;
-		day = yspan*tspr->yrepeat;
-		rzi[1] = rzi[0]-mulscale12(sinang,dax);
-		rxi[1] = rxi[0]+mulscale12(cosang,dax);
-		dax = -mulscale12(cosang,day);
-		day = -mulscale12(sinang,day);
-		rzi[2] = rzi[1]+dax; rxi[2] = rxi[1]+day;
-		rzi[3] = rzi[0]+dax; rxi[3] = rxi[0]+day;
-
-			//Put all points on same z
-		ryi[0] = scale((tspr->z - globalposz), yxaspect, (int32_t)XDIM << 8);
-		if (ryi[0] == 0) return;
-		ryi[1] = ryi[2] = ryi[3] = ryi[0];
-
-		if ((cstat&4) == 0)
-			{ z = 0; z1 = 1; z2 = 3; }
-		else
-			{ z = 1; z1 = 0; z2 = 2; }
-
-		dax = rzi[z1]-rzi[z]; day = rxi[z1]-rxi[z];
-		bot = dmulscale8(dax,dax,day,day);
-		if (((klabs(dax)>>13) >= bot) || ((klabs(day)>>13) >= bot)) return;
-		globalx1 = divscale18(dax,bot);
-		globalx2 = divscale18(day,bot);
-
-		dax = rzi[z2]-rzi[z]; day = rxi[z2]-rxi[z];
-		bot = dmulscale8(dax,dax,day,day);
-		if (((klabs(dax)>>13) >= bot) || ((klabs(day)>>13) >= bot)) return;
-		globaly1 = divscale18(dax,bot);
-		globaly2 = divscale18(day,bot);
-
-			//Calculate globals for hline texture mapping function
-		globalxpanning = (rxi[z]<<12);
-		globalypanning = (rzi[z]<<12);
-		globalzd = (ryi[z]<<12);
-
-		rzi[0] = mulscale16(rzi[0],viewingrange);
-		rzi[1] = mulscale16(rzi[1],viewingrange);
-		rzi[2] = mulscale16(rzi[2],viewingrange);
-		rzi[3] = mulscale16(rzi[3],viewingrange);
-
-		if (ryi[0] < 0)   //If ceilsprite is above you, reverse order of points
-		{
-			i = rxi[1]; rxi[1] = rxi[3]; rxi[3] = i;
-			i = rzi[1]; rzi[1] = rzi[3]; rzi[3] = i;
-		}
-
-
-			//Clip polygon in 3-space
-		npoints = 4;
-
-			//Clip edge 1
-		npoints2 = 0;
-		zzsgn = rxi[0]+rzi[0];
-		for(z=0;z<npoints;z++)
-		{
-			zz = z+1; if (zz == npoints) zz = 0;
-			zsgn = zzsgn; zzsgn = rxi[zz]+rzi[zz];
-			if (zsgn >= 0)
-			{
-				rxi2[npoints2] = rxi[z]; ryi2[npoints2] = ryi[z]; rzi2[npoints2] = rzi[z];
-				npoints2++;
-			}
-			if ((zsgn^zzsgn) < 0)
-			{
-				t = divscale30(zsgn,zsgn-zzsgn);
-				rxi2[npoints2] = rxi[z] + mulscale30(t,rxi[zz]-rxi[z]);
-				ryi2[npoints2] = ryi[z] + mulscale30(t,ryi[zz]-ryi[z]);
-				rzi2[npoints2] = rzi[z] + mulscale30(t,rzi[zz]-rzi[z]);
-				npoints2++;
-			}
-		}
-		if (npoints2 <= 2) return;
-
-			//Clip edge 2
-		npoints = 0;
-		zzsgn = rxi2[0]-rzi2[0];
-		for(z=0;z<npoints2;z++)
-		{
-			zz = z+1; if (zz == npoints2) zz = 0;
-			zsgn = zzsgn; zzsgn = rxi2[zz]-rzi2[zz];
-			if (zsgn <= 0)
-			{
-				rxi[npoints] = rxi2[z]; ryi[npoints] = ryi2[z]; rzi[npoints] = rzi2[z];
-				npoints++;
-			}
-			if ((zsgn^zzsgn) < 0)
-			{
-				t = divscale30(zsgn,zsgn-zzsgn);
-				rxi[npoints] = rxi2[z] + mulscale30(t,rxi2[zz]-rxi2[z]);
-				ryi[npoints] = ryi2[z] + mulscale30(t,ryi2[zz]-ryi2[z]);
-				rzi[npoints] = rzi2[z] + mulscale30(t,rzi2[zz]-rzi2[z]);
-				npoints++;
-			}
-		}
-		if (npoints <= 2) return;
-
-			//Clip edge 3
-		npoints2 = 0;
-		zzsgn = ryi[0]*(XDIM>>1) + (rzi[0]*(globalhoriz-0));
-		for(z=0;z<npoints;z++)
-		{
-			zz = z+1; if (zz == npoints) zz = 0;
-			zsgn = zzsgn; zzsgn = ryi[zz]*(XDIM>>1) + (rzi[zz]*(globalhoriz-0));
-			if (zsgn >= 0)
-			{
-				rxi2[npoints2] = rxi[z];
-				ryi2[npoints2] = ryi[z];
-				rzi2[npoints2] = rzi[z];
-				npoints2++;
-			}
-			if ((zsgn^zzsgn) < 0)
-			{
-				t = divscale30(zsgn,zsgn-zzsgn);
-				rxi2[npoints2] = rxi[z] + mulscale30(t,rxi[zz]-rxi[z]);
-				ryi2[npoints2] = ryi[z] + mulscale30(t,ryi[zz]-ryi[z]);
-				rzi2[npoints2] = rzi[z] + mulscale30(t,rzi[zz]-rzi[z]);
-				npoints2++;
-			}
-		}
-		if (npoints2 <= 2) return;
-
-			//Clip edge 4
-		npoints = 0;
-		zzsgn = ryi2[0]*(XDIM>>1) + (rzi2[0]*(globalhoriz-YDIM));
-		for(z=0;z<npoints2;z++)
-		{
-			zz = z+1; if (zz == npoints2) zz = 0;
-			zsgn = zzsgn; zzsgn = ryi2[zz]*(XDIM>>1) + (rzi2[zz]*(globalhoriz-YDIM));
-			if (zsgn <= 0)
-			{
-				rxi[npoints] = rxi2[z];
-				ryi[npoints] = ryi2[z];
-				rzi[npoints] = rzi2[z];
-				npoints++;
-			}
-			if ((zsgn^zzsgn) < 0)
-			{
-				t = divscale30(zsgn,zsgn-zzsgn);
-				rxi[npoints] = rxi2[z] + mulscale30(t,rxi2[zz]-rxi2[z]);
-				ryi[npoints] = ryi2[z] + mulscale30(t,ryi2[zz]-ryi2[z]);
-				rzi[npoints] = rzi2[z] + mulscale30(t,rzi2[zz]-rzi2[z]);
-				npoints++;
-			}
-		}
-		if (npoints <= 2) return;
-
-			//Project onto screen
-		lpoint = -1; lmax = 0x7fffffff;
-		rpoint = -1; rmax = 0x80000000;
-		for(z=0;z<npoints;z++)
-		{
-			xsi[z] = scale(rxi[z], (int32_t)XDIM << 15, rzi[z]) + ((int32_t)XDIM << 15);
-			ysi[z] = scale(ryi[z], (int32_t)XDIM << 15, rzi[z]) + (globalhoriz << 16);
-			if (xsi[z] < 0) xsi[z] = 0;
-			if (xsi[z] > ((int32_t)XDIM<<16)) xsi[z] = ((int32_t)XDIM<<16);
-			if (ysi[z] < ((int32_t)0<<16)) ysi[z] = ((int32_t)0<<16);
-			if (ysi[z] > ((int32_t)YDIM<<16)) ysi[z] = ((int32_t)YDIM<<16);
-			if (xsi[z] < lmax) lmax = xsi[z], lpoint = z;
-			if (xsi[z] > rmax) rmax = xsi[z], rpoint = z;
-		}
-
-			//Get uwall arrays
-		for(z=lpoint;z!=rpoint;z=zz)
-		{
-			zz = z+1; if (zz == npoints) zz = 0;
-
-			dax1 = ((xsi[z]+65535)>>16);
-			dax2 = ((xsi[zz]+65535)>>16);
-			if (dax2 > dax1)
-			{
-				yinc = divscale16(ysi[zz]-ysi[z],xsi[zz]-xsi[z]);
-				y = ysi[z] + mulscale16((dax1<<16)-xsi[z],yinc);
-				qinterpolatedown16short(&uwall[dax1],dax2-dax1,y,yinc);
-			}
-		}
-
-			//Get dwall arrays
-		for(;z!=lpoint;z=zz)
-		{
-			zz = z+1; if (zz == npoints) zz = 0;
-
-			dax1 = ((xsi[zz]+65535)>>16);
-			dax2 = ((xsi[z]+65535)>>16);
-			if (dax2 > dax1)
-			{
-				yinc = divscale16(ysi[zz]-ysi[z],xsi[zz]-xsi[z]);
-				y = ysi[zz] + mulscale16((dax1<<16)-xsi[zz],yinc);
-				qinterpolatedown16short(&dwall[dax1],dax2-dax1,y,yinc);
-			}
-		}
-
-
-		lx = ((lmax+65535)>>16);
-		rx = ((rmax+65535)>>16);
-		for(x=lx;x<=rx;x++)
-		{
-			uwall[x] = max(uwall[x],startumost[x]);
-			dwall[x] = min(dwall[x],startdmost[x]);
-		}
-
-			//Additional uwall/dwall clipping goes here
-		for(i=smostwallcnt-1;i>=0;i--)
-		{
-			j = smostwall[i];
-			if ((xb1[j] > rx) || (xb2[j] < lx)) continue;
-			if ((yp <= yb1[j]) && (yp <= yb2[j])) continue;
-
-				//if (spritewallfront(tspr,thewall[j]) == 0)
-			x = thewall[j]; xp1 = wall[x].x; yp1 = wall[x].y;
-			x = wall[x].point2; xp2 = wall[x].x; yp2 = wall[x].y;
-			x = (xp2-xp1)*(tspr->y-yp1)-(tspr->x-xp1)*(yp2-yp1);
-			if ((yp > yb1[j]) && (yp > yb2[j])) x = -1;
-			if ((x >= 0) && ((x != 0) || (wall[thewall[j]].nextsector != tspr->sectnum))) continue;
-
-			dalx2 = max(xb1[j],lx); darx2 = min(xb2[j],rx);
-
-			switch(smostwalltype[i])
-			{
-				case 0:
-					if (dalx2 <= darx2)
-					{
-						if ((dalx2 == lx) && (darx2 == rx)) return;
-						_fmemset(&dwall[dalx2], 0, (darx2 - dalx2 + 1) * sizeof(dwall[0]));
-					}
-					break;
-				case 1:
-					k = smoststart[i] - xb1[j];
-					for(x=dalx2;x<=darx2;x++)
-						if (smost[k+x] > uwall[x]) uwall[x] = smost[k+x];
-					break;
-				case 2:
-					k = smoststart[i] - xb1[j];
-					for(x=dalx2;x<=darx2;x++)
-						if (smost[k+x] < dwall[x]) dwall[x] = smost[k+x];
-					break;
-			}
-		}
-
-			//sprite
-		if ((searchit >= 1) && (searchx >= lx) && (searchx <= rx))
-			if ((searchy >= uwall[searchx]) && (searchy <= dwall[searchx]))
-			{
-				searchsector = sectnum; searchwall = spritenum;
-				searchstat = 3; searchit = 1;
-			}
-
-		globalorientation = cstat;
-		globalpicnum = tilenum;
-		if ((uint32_t)globalpicnum >= (uint32_t)MAXTILES) globalpicnum = 0;
-		//if (picanm[globalpicnum]&192) globalpicnum += animateoffs(globalpicnum);
-
-		bufplc = loadtile(globalpicnum);
-
-		globvis = mulscale16(globalhisibility,viewingrange);
-		if (sec->visibility != 0) globvis = mulscale4(globvis,(int32_t)((uint8_t)(sec->visibility+16)));
-
-		x = picsiz[globalpicnum]; y = ((x>>4)&15); x &= 15;
-		if (pow2long[x] != xspan)
-		{
-			x++;
-			globalx1 = mulscale(globalx1,xspan,x);
-			globalx2 = mulscale(globalx2,xspan,x);
-		}
-
-		dax = globalxpanning; day = globalypanning;
-		globalxpanning = -dmulscale6(globalx1,day,globalx2,dax);
-		globalypanning = -dmulscale6(globaly1,day,globaly2,dax);
-
-		globalx2 = mulscale16(globalx2,viewingrange);
-		globaly2 = mulscale16(globaly2,viewingrange);
-		globalzd = mulscale16(globalzd,viewingrangerecip);
-
-		globalx1 = (globalx1-globalx2)*(XDIM>>1);
-		globaly1 = (globaly1-globaly2)*(XDIM>>1);
-
-		_a_glogx = x;
-		_a_glogy = y;
-
-			//Draw it!
-		ceilspritescan(lx, rx - 1, bufplc);
-
-		Z_ChangeTagToCache(bufplc);
-	}
+		drawspriteFloor(yp, tspr, tilenum, xoff, cstat, yoff, sec, sectnum, spritenum);
 }
