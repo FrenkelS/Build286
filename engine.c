@@ -1512,7 +1512,7 @@ void drawmasks(void)
 		if (yp > (4<<8))
 		{
 			xp = dmulscale6(ys,cosglobalang,-xs,singlobalang);
-			spritesx[i] = scale(xp+yp,XDIM<<7,yp);
+			spritesx[i] = scale(xp + yp, (int32_t)XDIM << 7, yp);
 		}
 		else if ((tspriteptr[i]->cstat&48) == 0)
 		{
