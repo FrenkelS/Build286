@@ -8,6 +8,7 @@
 #define __FILESYSTEM__
 
 #include <stdint.h>
+#include "compiler.h"
 
 void initgroupfile(char *filename);
 void uninitgroupfile(void);

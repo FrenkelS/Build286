@@ -5,7 +5,7 @@
 // This file IS NOT A PART OF Ken Silverman's original release
 
 #include <stdint.h>
-#include "compiler.h"
+#include <stdio.h>
 #include "filesystem.h"
 #include "tables.h"
 #include "test.h"
@@ -28,19 +28,11 @@ int16_t sintable[2048];
 int16_t radarang[1280];
 uint8_t britable[16][64];
 
-static uint8_t tablesloaded = 0;
-
 
 void loadtables(void)
 {
-	int32_t fil;
+	int_fast8_t fil;
 	int_fast16_t i;
-
-	uint8_t textfont[1024];
-	uint8_t smalltextfont[1024];
-
-	if (tablesloaded != 0)
-		return;
 
 	fil = kopen4load("tables.dat", 0);
 #if defined RANGECHECK
@@ -48,17 +40,15 @@ void loadtables(void)
 		I_Error("Can't open tables.dat");
 #endif
 
-	kread(fil, sintable, 2048 * 2);
-	kread(fil, radarang, 640 * 2);
+	kread(fil, sintable, sizeof(sintable));
+	kread(fil, radarang, sizeof(radarang) / 2);
 
 	for (i = 0; i < 640; i++)
 		radarang[1279 - i] = -radarang[i];
 
-	kread(fil, textfont, 1024);
-	kread(fil, smalltextfont, 1024);
-	kread(fil, britable, 1024);
+	klseek(fil, 1024, SEEK_CUR); // textfont
+	klseek(fil, 1024, SEEK_CUR); // smalltextfont
+	kread(fil, britable, sizeof(britable));
 
 	kclose(fil);
-
-	tablesloaded = 1;
 }
