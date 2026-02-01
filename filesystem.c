@@ -38,16 +38,16 @@ static const uint8_t toupperlookup[256] =
 	0xf0,0xf1,0xf2,0xf3,0xf4,0xf5,0xf6,0xf7,0xf8,0xf9,0xfa,0xfb,0xfc,0xfd,0xfe,0xff,
 };
 
-static int32_t numgroupfiles = 0;
-static int32_t gnumfiles[MAXGROUPFILES];
-static int32_t groupfil[MAXGROUPFILES] = {-1}; //{-1,-1,-1,-1};
-static int32_t groupfilpos[MAXGROUPFILES];
+static int numgroupfiles = 0;
+static int16_t gnumfiles[MAXGROUPFILES];
+static int groupfil[MAXGROUPFILES] = {-1}; //{-1,-1,-1,-1};
+static off_t groupfilpos[MAXGROUPFILES];
 static uint8_t __far* gfilelist[MAXGROUPFILES];
-static int32_t __far* gfileoffs[MAXGROUPFILES];
+static off_t __far* gfileoffs[MAXGROUPFILES];
 
 static uint8_t filegrp[MAXOPENFILES];
-static int32_t filepos[MAXOPENFILES];
-static int32_t filehan[MAXOPENFILES] =
+static off_t filepos[MAXOPENFILES];
+static int filehan[MAXOPENFILES] =
 {
 	-1
 	//-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
@@ -59,7 +59,7 @@ static int32_t filehan[MAXOPENFILES] =
 
 #define BUFFERSIZE 512
 
-static ssize_t _fread(int fd, void __far* buf, size_t nbyte)
+static size_t _fread(int fd, void __far* buf, size_t nbyte)
 {
 	uint8_t __far* dest = buf;
 	uint8_t buffer[BUFFERSIZE];
@@ -85,52 +85,56 @@ static ssize_t _fread(int fd, void __far* buf, size_t nbyte)
 
 void initgroupfile(char *filename)
 {
-	char buf[16];
-	int32_t i, j, k;
+	char buf[14];
+	int16_t i;
+	off_t j;
+	int32_t k;
 
 #if defined RANGECHECK
 	if (numgroupfiles >= MAXGROUPFILES)
-		I_Error("numgroupfiles %li is too big", numgroupfiles);
+		I_Error("numgroupfiles %i is too big", numgroupfiles);
 #endif
 
-	groupfil[numgroupfiles] = open(filename,O_BINARY|O_RDWR,S_IREAD);
+	groupfil[numgroupfiles] = open(filename, O_BINARY | O_RDWR, S_IREAD);
 	if (groupfil[numgroupfiles] != -1)
 	{
 		groupfilpos[numgroupfiles] = 0;
-		read(groupfil[numgroupfiles],buf,16);
+		read(groupfil[numgroupfiles], buf, 16);
 		if ((buf[0] != 'K') || (buf[1] != 'e') || (buf[2] != 'n') ||
-			 (buf[3] != 'S') || (buf[4] != 'i') || (buf[5] != 'l') ||
-			 (buf[6] != 'v') || (buf[7] != 'e') || (buf[8] != 'r') ||
-			 (buf[9] != 'm') || (buf[10] != 'a') || (buf[11] != 'n'))
+			(buf[3] != 'S') || (buf[4] != 'i') || (buf[5] != 'l') ||
+			(buf[6] != 'v') || (buf[7] != 'e') || (buf[8] != 'r') ||
+			(buf[9] != 'm') || (buf[10] != 'a') || (buf[11] != 'n'))
 		{
 			I_Error("%s is not a valid group file", filename);
 		}
 
-		gnumfiles[numgroupfiles] = *((int32_t *)&buf[12]);
+		gnumfiles[numgroupfiles] = *((int16_t *)&buf[12]);
 
-		gfilelist[numgroupfiles] = Z_MallocStatic(gnumfiles[numgroupfiles]<<4);
-		gfileoffs[numgroupfiles] = Z_MallocStatic((gnumfiles[numgroupfiles]+1)<<2);
+		gfilelist[numgroupfiles] = Z_MallocStatic(gnumfiles[numgroupfiles] << 4);
+		gfileoffs[numgroupfiles] = Z_MallocStatic((gnumfiles[numgroupfiles] + 1) * sizeof(gfileoffs[0]));
 
 		_fread(groupfil[numgroupfiles], gfilelist[numgroupfiles], gnumfiles[numgroupfiles] << 4);
 
 		j = 0;
-		for(i=0;i<gnumfiles[numgroupfiles];i++)
+		for (i = 0; i < gnumfiles[numgroupfiles]; i++)
 		{
-			k = *((int32_t __far*)&gfilelist[numgroupfiles][(i<<4)+12]);
-			gfilelist[numgroupfiles][(i<<4)+12] = 0;
+			k = *((int32_t __far*)&gfilelist[numgroupfiles][(i << 4) + 12]);
+			gfilelist[numgroupfiles][(i << 4) + 12] = '\0';
 			gfileoffs[numgroupfiles][i] = j;
 			j += k;
 		}
 		gfileoffs[numgroupfiles][gnumfiles[numgroupfiles]] = j;
 	}
+
 	numgroupfiles++;
 }
 
+
 void uninitgroupfile(void)
 {
-	int32_t i;
+	int i;
 
-	for(i=numgroupfiles-1;i>=0;i--)
+	for (i = numgroupfiles - 1; i >= 0; i--)
 		if (groupfil[i] != -1)
 		{
 			Z_Free(gfilelist[i]);
@@ -140,13 +144,17 @@ void uninitgroupfile(void)
 		}
 }
 
-int32_t kopen4load(char *filename, uint8_t searchfirst)
-{
-	int32_t i, j, k, fil, newhandle;
-	uint8_t bad;
-	uint8_t __far* gfileptr;
 
-	newhandle = MAXOPENFILES-1;
+int kopen4load(char *filename, uint8_t searchfirst)
+{
+	int16_t i;
+	int_fast8_t j;
+	int k;
+	int fil, newhandle;
+	uint8_t bad;
+	char __far* gfileptr;
+
+	newhandle = MAXOPENFILES - 1;
 	while (filehan[newhandle] != -1)
 	{
 		newhandle--;
@@ -157,46 +165,62 @@ int32_t kopen4load(char *filename, uint8_t searchfirst)
 	}
 
 	if (searchfirst == 0)
-		if ((fil = open(filename,O_BINARY|O_RDONLY)) != -1)
+	{
+		fil = open(filename, O_BINARY | O_RDONLY);
+		if (fil != -1)
 		{
 			filegrp[newhandle] = 255;
 			filehan[newhandle] = fil;
 			filepos[newhandle] = 0;
-			return(newhandle);
+			return newhandle;
 		}
-	for(k=numgroupfiles-1;k>=0;k--)
+	}
+
+	for (k = numgroupfiles - 1; k >= 0; k--)
 	{
-		if (searchfirst != 0) k = 0;
+		if (searchfirst != 0)
+			k = 0;
+
 		if (groupfil[k] != -1)
 		{
-			for(i=gnumfiles[k]-1;i>=0;i--)
+			for (i = gnumfiles[k] - 1; i >= 0; i--)
 			{
-				gfileptr = (uint8_t __far*)&gfilelist[k][i<<4];
+				gfileptr = (char __far*)&gfilelist[k][i << 4];
 
 				bad = 0;
-				for(j=0;j<13;j++)
+				for (j = 0; j < 13; j++)
 				{
-					if (!filename[j]) break;
-					if (toupperlookup[(uint32_t)filename[j]] != toupperlookup[(uint32_t)gfileptr[j]])
-						{ bad = 1; break; }
+					if (!filename[j])
+						break;
+
+					if (toupperlookup[(size_t)filename[j]] != toupperlookup[(size_t)gfileptr[j]])
+					{
+						bad = 1;
+						break;
+					}
 				}
-				if (bad) continue;
+				if (bad)
+					continue;
 
 				filegrp[newhandle] = k;
 				filehan[newhandle] = i;
 				filepos[newhandle] = 0;
-				return(newhandle);
+				return newhandle;
 			}
 		}
 	}
-	return(-1);
+
+	return -1;
 }
 
-void kread(int32_t handle, void __far* buffer, int32_t leng)
-{
-	int32_t i, filenum, groupnum;
 
-	filenum = filehan[handle];
+void kread(int handle, void __far* buffer, size_t leng)
+{
+	off_t i;
+	int filenum;
+	uint8_t groupnum;
+
+	filenum  = filehan[handle];
 	groupnum = filegrp[handle];
 	if (groupnum == 255)
 	{
@@ -206,42 +230,59 @@ void kread(int32_t handle, void __far* buffer, int32_t leng)
 
 	if (groupfil[groupnum] != -1)
 	{
-		i = gfileoffs[groupnum][filenum]+filepos[handle];
+		i = gfileoffs[groupnum][filenum] + filepos[handle];
 		if (i != groupfilpos[groupnum])
 		{
-			lseek(groupfil[groupnum],i+((gnumfiles[groupnum]+1)<<4),SEEK_SET);
+			lseek(groupfil[groupnum], i + ((gnumfiles[groupnum] + 1) << 4), SEEK_SET);
 			groupfilpos[groupnum] = i;
 		}
-		leng = min(leng,(gfileoffs[groupnum][filenum+1]-gfileoffs[groupnum][filenum])-filepos[handle]);
+		leng = (size_t)min((off_t)leng, (gfileoffs[groupnum][filenum + 1] - gfileoffs[groupnum][filenum]) - filepos[handle]);
 		leng = _fread(groupfil[groupnum], buffer, leng);
-		filepos[handle] += leng;
+		filepos[handle]       += leng;
 		groupfilpos[groupnum] += leng;
 	}
 }
 
-void klseek(int32_t handle, int32_t offset, int32_t whence)
+
+void klseek(int handle, off_t offset, int whence)
 {
-	int32_t i, groupnum;
+	int i;
+	uint8_t groupnum;
 
 	groupnum = filegrp[handle];
 
-	if (groupnum == 255) { lseek(filehan[handle],offset,whence); return; }
+	if (groupnum == 255)
+	{
+		lseek(filehan[handle], offset, whence);
+		return;
+	}
+
 	if (groupfil[groupnum] != -1)
 	{
 		switch(whence)
 		{
-			case SEEK_SET: filepos[handle] = offset; break;
-			case SEEK_END: i = filehan[handle];
-								filepos[handle] = (gfileoffs[groupnum][i+1]-gfileoffs[groupnum][i])+offset;
-								break;
-			case SEEK_CUR: filepos[handle] += offset; break;
+			case SEEK_SET:
+				filepos[handle] = offset;
+				break;
+			case SEEK_END:
+				i = filehan[handle];
+				filepos[handle] = (gfileoffs[groupnum][i + 1] - gfileoffs[groupnum][i]) + offset;
+				break;
+			case SEEK_CUR:
+				filepos[handle] += offset;
+				break;
 		}
 	}
 }
 
-void kclose(int32_t handle)
+
+void kclose(int handle)
 {
-	if (handle < 0) return;
-	if (filegrp[handle] == 255) close(filehan[handle]);
+	if (handle < 0)
+		return;
+
+	if (filegrp[handle] == 255)
+		close(filehan[handle]);
+
 	filehan[handle] = -1;
 }

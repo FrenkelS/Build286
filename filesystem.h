@@ -8,13 +8,14 @@
 #define __FILESYSTEM__
 
 #include <stdint.h>
+#include <fcntl.h>
 #include "compiler.h"
 
 void initgroupfile(char *filename);
 void uninitgroupfile(void);
-int32_t kopen4load(char *filename, uint8_t searchfirst);
-void kread(int32_t handle, void __far* buffer, int32_t leng);
-void klseek(int32_t handle, int32_t offset, int32_t whence);
-void kclose(int32_t handle);
+int kopen4load(char *filename, uint8_t searchfirst);
+void kread(int handle, void __far* buffer, size_t leng);
+void klseek(int handle, off_t offset, int whence);
+void kclose(int handle);
 
 #endif

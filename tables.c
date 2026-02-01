@@ -31,7 +31,7 @@ uint8_t britable[16][64];
 
 void loadtables(void)
 {
-	int_fast8_t fil;
+	int fil;
 	int_fast16_t i;
 
 	fil = kopen4load("tables.dat", 0);
