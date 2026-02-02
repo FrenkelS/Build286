@@ -1382,7 +1382,7 @@ void setgamemode(void)
 
 	setview();
 	clearallviews(0L);
-	setbrightnesspal();
+	setPalette();
 
 	if (searchx < 0)
 	{

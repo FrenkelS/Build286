@@ -19,10 +19,9 @@
 uint8_t __far* palookup[MAXPALOOKUPS];
 
 
-static uint8_t paletteloaded = 0;
 static uint8_t palette[768];
 static int16_t numpalookups;
-static int32_t curbrightness = 0;
+static size_t curbrightness = 0;
 
 
 //#define TRANSLUCENCY
@@ -36,17 +35,14 @@ void loadpalette(void)
 {
 	int fil;
 
-	if (paletteloaded != 0)
-		return;
-
 	fil = kopen4load("palette.dat", 0);
 #if defined RANGECHECK
 	if (fil == -1)
 		I_Error("Can't open palette.dat");
 #endif
 
-	kread(fil, palette, 768);
-	kread(fil, &numpalookups, 2);
+	kread(fil, palette, sizeof(palette));
+	kread(fil, &numpalookups, sizeof(numpalookups));
 
 	palookup[0] = Z_MallocStatic(numpalookups << 8);
 	kread(fil, palookup[0], numpalookups << 8);
@@ -56,68 +52,61 @@ void loadpalette(void)
 #endif
 
 	kclose(fil);
-
-	paletteloaded = 1;
 }
 
 
-static void setPalette(uint8_t *dapal)
+static void setpal(uint8_t *dapal)
 {
-	int32_t i;
+	int_fast16_t i;
 
 	outp(0x3c8, 0);
 	for (i = 256 >> 1; i > 0; i--)
 	{
-		outp(0x3c9, dapal[2]);
+		outp(0x3c9, *dapal++);
 
 		while (  inp(0x3da) & 1);
 		while (!(inp(0x3da) & 1));
 
-		outp(0x3c9,dapal[1]);
-		outp(0x3c9,dapal[0]);
+		outp(0x3c9, *dapal++);
+		outp(0x3c9, *dapal++);
 
-		outp(0x3c9,dapal[6]);
-		outp(0x3c9,dapal[5]);
-		outp(0x3c9,dapal[4]);
-
-		dapal += 8;
+		outp(0x3c9, *dapal++);
+		outp(0x3c9, *dapal++);
+		outp(0x3c9, *dapal++);
 	}
 }
 
 
-void setbrightnessbrightness(uint8_t dabrightness)
+void setBrightness(size_t dabrightness)
 {
-	curbrightness = min(max((int32_t)dabrightness, 0), 15);
+	curbrightness = dabrightness;
 }
 
 
-void setbrightnesspal(void)
+void setPalette(void)
 {
-	int32_t i, k;
-	uint8_t tempbuf[256 * 4];
+	int_fast16_t i;
+	uint8_t tempbuf[256 * 3];
+	uint8_t *s;
+	uint8_t *d;
 
-	k = 0;
-
-	for (i = 0; i < 256; i++)
+	s = palette;
+	d = tempbuf;
+	for (i = 0; i < 256 * 3; i++)
 	{
-		tempbuf[k++] = britable[curbrightness][palette[i * 3 + 2]];
-		tempbuf[k++] = britable[curbrightness][palette[i * 3 + 1]];
-		tempbuf[k++] = britable[curbrightness][palette[i * 3 + 0]];
-		tempbuf[k++] = 0;
+		*d++ = britable[curbrightness][*s++];
 	}
 
-	setPalette(tempbuf);
+	setpal(tempbuf);
 }
 
 
-void makepalookup(int32_t palnum, uint8_t *remapbuf)
+void makepalookup(size_t palnum, uint8_t *remapbuf)
 {
-	int32_t i, j;
+	size_t i;
+	int16_t j;
 	uint8_t __far* ptr;
 	uint8_t __far* ptr2;
-
-	if (paletteloaded == 0)
-		return;
 
 	if (palookup[palnum] == NULL)
 	{
@@ -139,9 +128,9 @@ void makepalookup(int32_t palnum, uint8_t *remapbuf)
 }
 
 
-int32_t getpalookup(int32_t davis, int32_t dashade)
+int16_t getpalookup(int32_t davis, int32_t dashade)
 {
-	return min(max(dashade + (davis >> 8), 0), numpalookups - 1);
+	return min(max((davis >> 8) + dashade, 0), numpalookups - 1);
 }
 
 
@@ -150,8 +139,8 @@ uint8_t translucfunc(uint8_t lo, uint8_t hi)
 #if defined TRANSLUCENCY
 	return transluc[lo + (hi << 8)];
 #else
-	static uint8_t x = 0;
-	x ^= 1;
-	return x ? lo : hi;
+	static uint8_t toggle = 0;
+	toggle ^= 1;
+	return toggle ? lo : hi;
 #endif
 }

@@ -14,10 +14,10 @@ extern uint8_t __far* palookup[MAXPALOOKUPS];
 
 
 void loadpalette(void);
-void setbrightnessbrightness(uint8_t dabrightness);
-void setbrightnesspal(void);
-void makepalookup(int32_t palnum, uint8_t *remapbuf);
-int32_t getpalookup(int32_t davis, int32_t dashade);
+void setBrightness(size_t dabrightness);
+void setPalette(void);
+void makepalookup(size_t palnum, uint8_t *remapbuf);
+int16_t getpalookup(int32_t davis, int32_t dashade);
 uint8_t translucfunc(uint8_t lo, uint8_t hi);
 
 #endif

@@ -66,8 +66,6 @@ static int32_t hvel;
 
 static int32_t synctics = 0, lockclock = 0;
 
-static int16_t brightness = 0;
-
 static char boardfilename[13];
 
 static uint8_t tempbuf[256];
@@ -219,6 +217,7 @@ int main(int argc, const char * const *argv)
 
 static void editinput(void)
 {
+	static size_t brightness = 0;
 	int32_t doubvel;
 	int32_t goalz, xvect, yvect, hiz, loz;
 	int32_t hihit, lohit;
@@ -227,12 +226,10 @@ static void editinput(void)
 	{
 		keystatus[0x57] = 0;
 
-		brightness++;
-		if (brightness > 16)
-			brightness = 0;
+		brightness = (brightness + 1) & 15;
 
-		setbrightnessbrightness(brightness);
-		setbrightnesspal();
+		setBrightness(brightness);
+		setPalette();
 	}
 
 	if (keystatus[0x3b] > 0) posx--;
