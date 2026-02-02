@@ -26,11 +26,10 @@ uint8_t picsiz[MAXTILES];
 static uint8_t __far* waloff[MAXTILES]; //the actual 32-bit offset pointing to the top-left corner of the tile.
 static char artfilename[20];
 static uint8_t tilefilenum[MAXTILES];
-static int32_t tilefileoffs[MAXTILES];
+static off_t tilefileoffs[MAXTILES];
 
-static int32_t artfil    = -1;
+static int artfil = -1;
 static int32_t artfilnum = -1;
-static int32_t artfilplc = 0;
 
 static int32_t totalclocklock;
 
@@ -40,12 +39,12 @@ void loadpics(char *filename)
 	int16_t i;
 	int32_t numtilefiles;
 	int16_t k;
-	int32_t fil;
+	int fil;
 	int32_t artversion;
 	int32_t numtiles; // the number of tiles found in TILES###.DAT
 	int32_t localtilestart;
 	int32_t localtileend;
-	int32_t offscount;
+	off_t offscount;
 	int32_t dasiz;
 	int16_t j;
 
@@ -120,8 +119,9 @@ void unloadpics(void)
 }
 
 
-static uint8_t __far* staticloadtile(int16_t tilenume, uint16_t dasiz)
+static uint8_t __far* staticloadtile(int16_t tilenume, size_t dasiz)
 {
+	static off_t artfilplc = 0;
 	int32_t i;
 
 	i = tilefilenum[tilenume];
@@ -178,7 +178,7 @@ uint8_t __far* loadtile(int16_t tilenume)
 		I_Error("dasiz %li too big, %i %i %i", dasiz, tilenume, tilesizx[tilenume], tilesizy[tilenume]);
 #endif
 
-	return staticloadtile(tilenume, (uint16_t)dasiz);
+	return staticloadtile(tilenume, (size_t)dasiz);
 }
 
 
@@ -211,7 +211,7 @@ uint8_t __far* tryloadtile(int16_t tilenume)
 	if (!Z_IsEnoughFreeMemory((uint16_t)dasiz))
 		return NULL;
 
-	return staticloadtile(tilenume, (uint16_t)dasiz);
+	return staticloadtile(tilenume, (size_t)dasiz);
 }
 
 

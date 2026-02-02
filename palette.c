@@ -34,7 +34,7 @@ static uint8_t transluc[65536];
 
 void loadpalette(void)
 {
-	int32_t fil;
+	int fil;
 
 	if (paletteloaded != 0)
 		return;
