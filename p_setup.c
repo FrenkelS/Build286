@@ -25,7 +25,7 @@ void loadboard(char *filename, int32_t *daposx, int32_t *daposy, int32_t *daposz
 				int16_t *daang, int16_t *dacursectnum)
 {
 	size_t i;
-	uint8_t searchfirst;
+	uint_fast8_t searchfirst;
 	int fil;
 	int32_t mapversion;
 	int16_t numwalls;

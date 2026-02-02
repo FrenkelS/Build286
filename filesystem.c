@@ -145,7 +145,7 @@ void uninitgroupfile(void)
 }
 
 
-int kopen4load(char *filename, uint8_t searchfirst)
+int kopen4load(char *filename, uint_fast8_t searchfirst)
 {
 	int16_t i;
 	int_fast8_t j;

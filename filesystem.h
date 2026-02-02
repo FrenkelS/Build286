@@ -13,7 +13,7 @@
 
 void initgroupfile(char *filename);
 void uninitgroupfile(void);
-int kopen4load(char *filename, uint8_t searchfirst);
+int kopen4load(char *filename, uint_fast8_t searchfirst);
 void kread(int handle, void __far* buffer, size_t leng);
 void klseek(int handle, off_t offset, int whence);
 void kclose(int handle);
