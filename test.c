@@ -45,16 +45,13 @@ static void __interrupt __far timerhandler(void);
 static uint8_t isTimerSet = 0;
 
 
-#define KEYFIFOSIZ 64
 #if defined __DJGPP__
 static _go32_dpmi_seginfo oldkeyhandler, newkeyhandler;
 #else
 static void __interrupt __far (*oldkeyhandler)(void);
 #endif
 static void __interrupt __far keyhandler(void);
-static volatile uint8_t keystatus[256], keyfifo[KEYFIFOSIZ];
-static volatile int keyfifoend;
-static volatile uint8_t readch, extended;
+static volatile int8_t keystatus[256];
 static uint8_t isKeyboardIsrSet = 0;
 
 
@@ -68,7 +65,6 @@ static int32_t synctics = 0, lockclock = 0;
 
 static char boardfilename[13];
 
-static uint8_t tempbuf[256];
 
 #define NUMOPTIONS 8
 #define NUMKEYS 19
@@ -105,9 +101,9 @@ _Noreturn static void I_Quit(void);
 static int myargc;
 static const char * const * myargv;
 
-int16_t M_CheckParm(char *check)
+int M_CheckParm(char *check)
 {
-	int16_t i;
+	int i;
 
 	for (i = 1; i < myargc; i++)
 		if (!stricmp(check, myargv[i]))
@@ -119,8 +115,11 @@ int16_t M_CheckParm(char *check)
 
 int main(int argc, const char * const *argv)
 {
-	int32_t i, fil, daang = 0;
+	int16_t i;
+	int fil;
+	int16_t daang = 0;
 	spritetype __far* tspr;
+	uint8_t tempbuf[256];
 
 	myargc = argc;
 	myargv = argv;
@@ -131,18 +130,20 @@ int main(int argc, const char * const *argv)
 	editstatus = 1;
 	if (argc >= 2)
 	{
-		strcpy(boardfilename,argv[1]);
-		if (strchr(boardfilename,'.') == 0)
-			strcat(boardfilename,".map");
+		strcpy(boardfilename, argv[1]);
+		if (strchr(boardfilename, '.') == 0)
+			strcat(boardfilename, ".map");
 	}
 	else
-		strcpy(boardfilename,"test.map");
+		strcpy(boardfilename, "test.map");
 
 	initgroupfile("stuff.dat");
-	if ((fil = open("setup.dat",O_BINARY|O_RDWR,S_IREAD)) != -1)
+
+	fil = open("setup.dat", O_BINARY | O_RDWR, S_IREAD);
+	if (fil != -1)
 	{
-		read(fil,&option[0],NUMOPTIONS);
-		read(fil,&buildkeys[0],NUMKEYS);
+		read(fil, &option[0], NUMOPTIONS);
+		read(fil, &buildkeys[0], NUMKEYS);
 		close(fil);
 	}
 
@@ -150,11 +151,13 @@ int main(int argc, const char * const *argv)
 
 		//You can load your own palette lookup tables here if you just
 		//copy the right code!
-	for(i=0;i<256;i++)
-		tempbuf[i] = ((i+32)&255);  //remap colors for screwy palette sectors
+	for (i = 0; i < 256; i++)
+		tempbuf[i] = (i + 32) & 255;  //remap colors for screwy palette sectors
 	makepalookup(16, tempbuf);
 
-	pskyoff[0] = 0; pskyoff[1] = 0; pskybits = 1;
+	pskyoff[0] = 0;
+	pskyoff[1] = 0;
+	pskybits = 1;
 
 	initkeys();
 	inittimer();
@@ -165,7 +168,7 @@ int main(int argc, const char * const *argv)
 
 	initspritelists();
 
-	loadboard(boardfilename,&posx,&posy,&posz,&ang,&cursectnum);
+	loadboard(boardfilename, &posx, &posy, &posz, &ang, &cursectnum);
 
 	for (i = 0; i < numsprites; i++)
 	{
@@ -180,12 +183,12 @@ int main(int argc, const char * const *argv)
 
 	while (keystatus[1] == 0)
 	{
-		drawrooms(posx,posy,posz,ang,horiz,cursectnum);
+		drawrooms(posx, posy, posz, ang, horiz, cursectnum);
 
-		for(i=0,tspr=&tsprite[0];i<spritesortcnt;i++,tspr++)
+		for (i = 0, tspr = &tsprite[0]; i < spritesortcnt; i++, tspr++)
 		{
 			tspr->shade += 6;
-			if (sector[tspr->sectnum].ceilingstat&1)
+			if (sector[tspr->sectnum].ceilingstat & 1)
 				tspr->shade += sector[tspr->sectnum].ceilingshade;
 			else
 				tspr->shade += sector[tspr->sectnum].floorshade;
@@ -193,27 +196,28 @@ int main(int argc, const char * const *argv)
 
 		drawmasks();
 
-		if (keystatus[0xa]) setaspect(viewingrange+(viewingrange>>8),yxaspect+(yxaspect>>8));
-		if (keystatus[0xb]) setaspect(viewingrange-(viewingrange>>8),yxaspect-(yxaspect>>8));
-		if (keystatus[0xc]) setaspect(viewingrange,yxaspect-(yxaspect>>8));
-		if (keystatus[0xd]) setaspect(viewingrange,yxaspect+(yxaspect>>8));
+		if (keystatus[0xa]) setaspect(viewingrange + (viewingrange >> 8), yxaspect + (yxaspect >> 8));
+		if (keystatus[0xb]) setaspect(viewingrange - (viewingrange >> 8), yxaspect - (yxaspect >> 8));
+		if (keystatus[0xc]) setaspect(viewingrange, yxaspect - (yxaspect >> 8));
+		if (keystatus[0xd]) setaspect(viewingrange, yxaspect + (yxaspect >> 8));
 
 		editinput();
 
-		daang += (keystatus[0x6]-keystatus[0x7])*16;
+		daang += (keystatus[0x6] - keystatus[0x7]) * 16;
 		if (keystatus[0x2]) rotatesprite((int32_t)XDIM << 15, (int32_t)YDIM << 15, 65536L, daang, 75, 0, 0,     8 + 64, 0L, 0L, XDIM - 1L, YDIM - 1L);
 		if (keystatus[0x3]) rotatesprite((int32_t)XDIM << 15, (int32_t)YDIM << 15, 65536L, daang, 75, 0, 0,     8     , 0L, 0L, XDIM - 1L, YDIM - 1L);
 		if (keystatus[0x4]) rotatesprite((int32_t)XDIM << 15, (int32_t)YDIM << 15, 65536L, daang, 75, 0, 0, 1 + 8     , 0L, 0L, XDIM - 1L, YDIM - 1L);
 		if (keystatus[0x5]) rotatesprite((int32_t)XDIM << 15, (int32_t)YDIM << 15, 65536L, daang, 75, 0, 0, 1 + 8 + 32, 0L, 0L, XDIM - 1L, YDIM - 1L);
 
 		nextpage();
-		synctics = totalclock-lockclock;
+		synctics = totalclock - lockclock;
 		lockclock += synctics;
 	}
 
 	I_Quit();
-	return(0);
+	return 0;
 }
+
 
 static void editinput(void)
 {
@@ -222,7 +226,7 @@ static void editinput(void)
 	int32_t goalz, xvect, yvect, hiz, loz;
 	int32_t hihit, lohit;
 
-	if (keystatus[0x57] > 0)  //F11 - brightness
+	if (keystatus[0x57])  //F11 - brightness
 	{
 		keystatus[0x57] = 0;
 
@@ -232,77 +236,82 @@ static void editinput(void)
 		setPalette();
 	}
 
-	if (keystatus[0x3b] > 0) posx--;
-	if (keystatus[0x3c] > 0) posx++;
-	if (keystatus[0x3d] > 0) posy--;
-	if (keystatus[0x3e] > 0) posy++;
-	if (keystatus[0x43] > 0) ang--;
-	if (keystatus[0x44] > 0) ang++;
+	if (keystatus[0x3b]) posx--;
+	if (keystatus[0x3c]) posx++;
+	if (keystatus[0x3d]) posy--;
+	if (keystatus[0x3e]) posy++;
+	if (keystatus[0x43]) ang--;
+	if (keystatus[0x44]) ang++;
 
 	if (angvel != 0)          //ang += angvel * constant
 	{                         //ENGINE calculates angvel for you
 		doubvel = synctics;
-		if (keystatus[buildkeys[4]] > 0)  //Lt. shift makes turn velocity 50% faster
-			doubvel += (synctics>>1);
-		ang += ((angvel*doubvel)>>4);
-		ang = (ang+2048)&2047;
+		if (keystatus[buildkeys[4]])  //Lt. shift makes turn velocity 50% faster
+			doubvel += (synctics >> 1);
+		ang += ((angvel * doubvel) >> 4);
+		ang = (ang + 2048) & 2047;
 	}
-	if ((vel|svel) != 0)
+
+	if ((vel | svel) != 0)
 	{
 		doubvel = synctics;
-		if (keystatus[buildkeys[4]] > 0)     //Lt. shift doubles forward velocity
+		if (keystatus[buildkeys[4]])     //Lt. shift doubles forward velocity
 			doubvel += synctics;
-		xvect = 0, yvect = 0;
+		xvect = 0;
+		yvect = 0;
 		if (vel != 0)
 		{
-			xvect += ((vel*doubvel*(int32_t)sintable[(ang+2560)&2047])>>3);
-			yvect += ((vel*doubvel*(int32_t)sintable[(ang+2048)&2047])>>3);
+			xvect += ((vel * doubvel * (int32_t)sintable[(ang + 2560) & 2047]) >> 3);
+			yvect += ((vel * doubvel * (int32_t)sintable[(ang + 2048) & 2047]) >> 3);
 		}
 		if (svel != 0)
 		{
-			xvect += ((svel*doubvel*(int32_t)sintable[(ang+2048)&2047])>>3);
-			yvect += ((svel*doubvel*(int32_t)sintable[(ang+1536)&2047])>>3);
+			xvect += ((svel * doubvel * (int32_t)sintable[(ang + 2048) & 2047]) >> 3);
+			yvect += ((svel * doubvel * (int32_t)sintable[(ang + 1536) & 2047]) >> 3);
 		}
-		clipmove(&posx,&posy,&posz,&cursectnum,xvect,yvect,128L,4L<<8,4L<<8,CLIPMASK0);
+		clipmove(&posx, &posy, &posz, &cursectnum, xvect, yvect, 128L, 4L << 8, 4L << 8, CLIPMASK0);
 	}
-	getzrange(posx,posy,posz,cursectnum,&hiz,&hihit,&loz,&lohit,128L,CLIPMASK0);
+	getzrange(posx, posy, posz, cursectnum, &hiz, &hihit, &loz, &lohit, 128L, CLIPMASK0);
 
-	goalz = loz-(32<<8);   //playerheight pixels above floor
-	if (goalz < hiz+(16<<8))   //ceiling&floor too close
-		goalz = ((loz+hiz)>>1);
-	if (keystatus[buildkeys[8]] > 0)                            //A (stand high)
+	goalz = loz - (32 << 8);   //playerheight pixels above floor
+	if (goalz < hiz + (16 << 8))   //ceiling&floor too close
+		goalz = ((loz + hiz) >> 1);
+
+	if (keystatus[buildkeys[8]])                            //A (stand high)
 	{
-		if (keystatus[0x1d] > 0)
-			horiz = max(-100,horiz-((keystatus[buildkeys[4]]+1)<<2));
+		if (keystatus[0x1d])
+			horiz = max(-100, horiz - ((keystatus[buildkeys[4]] + 1) << 2));
 		else
 		{
-			goalz -= (16<<8);
-			if (keystatus[buildkeys[4]] > 0)    //Either shift key
-				goalz -= (24<<8);
+			goalz -= (16 << 8);
+			if (keystatus[buildkeys[4]])    //Either shift key
+				goalz -= (24 << 8);
 		}
 	}
-	if (keystatus[buildkeys[9]] > 0)                            //Z (stand low)
+
+	if (keystatus[buildkeys[9]])                            //Z (stand low)
 	{
-		if (keystatus[0x1d] > 0)
-			horiz = min(300,horiz+((keystatus[buildkeys[4]]+1)<<2));
+		if (keystatus[0x1d])
+			horiz = min(300, horiz + ((keystatus[buildkeys[4]] + 1) << 2));
 		else
 		{
-			goalz += (12<<8);
-			if (keystatus[buildkeys[4]] > 0)    //Either shift key
-				goalz += (12<<8);
+			goalz += (12 << 8);
+			if (keystatus[buildkeys[4]])    //Either shift key
+				goalz += ( 12 << 8);
 		}
 	}
 
 	if (goalz != posz)
 	{
 		if (posz < goalz) hvel += 32;
-		if (posz > goalz) hvel = ((goalz-posz)>>3);
+		if (posz > goalz) hvel = (goalz - posz) >> 3;
 
 		posz += hvel;
-		if (posz > loz-(4<<8)) posz = loz-(4<<8), hvel = 0;
-		if (posz < hiz+(4<<8)) posz = hiz+(4<<8), hvel = 0;
+		if (posz > loz - (4 << 8)) posz = loz - (4 << 8), hvel = 0;
+		if (posz < hiz + (4 << 8)) posz = hiz + (4 << 8), hvel = 0;
 	}
 }
+
 
 static void inittimer(void)
 {
@@ -315,6 +324,7 @@ static void inittimer(void)
 
 	isTimerSet = 1;
 }
+
 
 static void uninittimer(void)
 {
@@ -330,6 +340,7 @@ static void uninittimer(void)
 	_enable();
 }
 
+
 static void __interrupt __far timerhandler(void)
 {
 	totalclock++;
@@ -337,20 +348,16 @@ static void __interrupt __far timerhandler(void)
 	outp(0x20, 0x20);
 }
 
+
 static void initkeys(void)
 {
-	int32_t i;
-
-	keyfifoend = 0;
-	for(i = 0; i < 256; i++)
-		keystatus[i] = 0;
-
 	_disable();
 	replaceInterrupt(oldkeyhandler, newkeyhandler, 0x9, keyhandler);
 	_enable();
 
 	isKeyboardIsrSet = 1;
 }
+
 
 static void uninitkeys(void)
 {
@@ -366,14 +373,22 @@ static void uninitkeys(void)
 	*ptr &= ~0x030f;
 }
 
+
+#define KEYFIFOSIZ 64
+
 static void __interrupt __far keyhandler(void)
 {
+	static volatile uint8_t readch, extended;
 	uint8_t keytemp;
 	uint8_t oldreadch;
 
-	oldreadch = readch; readch = inp(0x60);
-	keytemp = inp(0x61); outp(0x61,keytemp|128); outp(0x61,keytemp&127);
-	outp(0x20,0x20);
+	oldreadch = readch;
+	readch  = inp(0x60);
+	keytemp = inp(0x61);
+	outp(0x61, keytemp | 128);
+	outp(0x61, keytemp & 127);
+	outp(0x20, 0x20);
+
 	if ((readch | 1) == 0xe1)
 	{
 		extended = 128;
@@ -382,52 +397,45 @@ static void __interrupt __far keyhandler(void)
 
 	if (oldreadch != readch)
 	{
-		if ((readch&128) == 0)
+		if ((readch & 128) == 0)
 		{
-			keytemp = readch+extended;
-			if (keystatus[keytemp] == 0)
-			{
-				keystatus[keytemp] = 1;
-				keyfifo[keyfifoend] = keytemp;
-				keyfifo[(keyfifoend+1)&(KEYFIFOSIZ-1)] = 1;
-				keyfifoend = ((keyfifoend+2)&(KEYFIFOSIZ-1));
-			}
+			keytemp = readch + extended;
+			keystatus[keytemp] = 1;
 		}
 		else
 		{
-			keytemp = (readch&127)+extended;
+			keytemp = (readch & 127) + extended;
 			keystatus[keytemp] = 0;
-			keyfifo[keyfifoend] = keytemp;
-			keyfifo[(keyfifoend+1)&(KEYFIFOSIZ-1)] = 0;
-			keyfifoend = ((keyfifoend+2)&(KEYFIFOSIZ-1));
 		}
 	}
 	extended = 0;
 }
 
+
 static void keytimerstuff(void)
 {
 	if (keystatus[buildkeys[5]] == 0)
 	{
-		if (keystatus[buildkeys[2]] > 0) angvel = max(angvel-16,-128);
-		if (keystatus[buildkeys[3]] > 0) angvel = min(angvel+16,127);
+		if (keystatus[buildkeys[2]]) angvel = max(angvel - 16, -128);
+		if (keystatus[buildkeys[3]]) angvel = min(angvel + 16,  127);
 	}
 	else
 	{
-		if (keystatus[buildkeys[2]] > 0) svel = min(svel+8,127);
-		if (keystatus[buildkeys[3]] > 0) svel = max(svel-8,-128);
+		if (keystatus[buildkeys[2]]) svel = min(svel + 8,  127);
+		if (keystatus[buildkeys[3]]) svel = max(svel - 8, -128);
 	}
-	if (keystatus[buildkeys[0]] > 0) vel = min(vel+8,127);
-	if (keystatus[buildkeys[1]] > 0) vel = max(vel-8,-128);
-	if (keystatus[buildkeys[12]] > 0) svel = min(svel+8,127);
-	if (keystatus[buildkeys[13]] > 0) svel = max(svel-8,-128);
 
-	if (angvel < 0) angvel = min(angvel+12,0);
-	if (angvel > 0) angvel = max(angvel-12,0);
-	if (svel < 0) svel = min(svel+2,0);
-	if (svel > 0) svel = max(svel-2,0);
-	if (vel < 0) vel = min(vel+2,0);
-	if (vel > 0) vel = max(vel-2,0);
+	if (keystatus[buildkeys[0]])   vel = min( vel + 8,  127);
+	if (keystatus[buildkeys[1]])   vel = max( vel - 8, -128);
+	if (keystatus[buildkeys[12]]) svel = min(svel + 8,  127);
+	if (keystatus[buildkeys[13]]) svel = max(svel - 8, -128);
+
+	if (angvel < 0) angvel = min(angvel + 12, 0);
+	if (angvel > 0) angvel = max(angvel - 12, 0);
+	if (svel < 0) svel = min(svel + 2, 0);
+	if (svel > 0) svel = max(svel - 2, 0);
+	if (vel < 0)   vel = min( vel + 2, 0);
+	if (vel > 0)   vel = max( vel - 2, 0);
 }
 
 

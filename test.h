@@ -7,14 +7,13 @@
 #ifndef __TEST__
 #define __TEST__
 
-#include <stdint.h>
 #include "compiler.h"
 
 
 #define faketimerhandler()
 
 
-int16_t M_CheckParm(char *check);
+int M_CheckParm(char *check);
 _Noreturn void I_Error(const char *error, ...);
 
 #endif

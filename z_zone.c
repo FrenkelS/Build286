@@ -373,7 +373,7 @@ static unsigned int _dos_allocmem(unsigned int __size, unsigned int *__seg)
 //
 // Z_Init
 //
-void Z_Init (void)
+void Z_Init(void)
 {
 	static uint8_t __far mainzone_sentinal_buffer[PARAGRAPH_SIZE * 2];
 	unsigned int max, segment;
@@ -611,7 +611,6 @@ static uint32_t Z_GetTotalFreeMemory(void)
 // Because Z_TryMalloc is static, we can control the input and we can make sure tag is always < PU_PURGELEVEL.
 //
 #define MINFRAGMENT		64
-
 
 static void __far* Z_TryMalloc(uint16_t size, uint_fast8_t tag, void __far*__far* user)
 {
