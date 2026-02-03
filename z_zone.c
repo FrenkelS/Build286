@@ -377,7 +377,7 @@ void Z_Init (void)
 {
 	static uint8_t __far mainzone_sentinal_buffer[PARAGRAPH_SIZE * 2];
 	unsigned int max, segment;
-	uint_fast8_t i;
+	size_t i;
 	uint32_t b;
 	memblock_t __far* block;
 	segment_t ems_segment;
@@ -556,7 +556,7 @@ static void Z_FreeBlock(memblock_t __far* block)
 //
 // Z_Free
 //
-void Z_Free (const void __far* ptr)
+void Z_Free(const void __far* ptr)
 {
 	memblock_t __far* block;
 
@@ -589,6 +589,7 @@ static uint32_t Z_GetLargestFreeBlockSize(void)
 	return largestFreeBlockSize;
 }
 
+
 static uint32_t Z_GetTotalFreeMemory(void)
 {
 	memblock_t __far* block;
@@ -612,7 +613,7 @@ static uint32_t Z_GetTotalFreeMemory(void)
 #define MINFRAGMENT		64
 
 
-static void __far* Z_TryMalloc(uint16_t size, int8_t tag, void __far*__far* user)
+static void __far* Z_TryMalloc(uint16_t size, uint_fast8_t tag, void __far*__far* user)
 {
 	memblock_t __far* base;
 	memblock_t __far* previous_block;
@@ -724,7 +725,7 @@ static void __far* Z_TryMalloc(uint16_t size, int8_t tag, void __far*__far* user
 }
 
 
-static void __far* Z_Malloc(uint16_t size, int8_t tag, void __far*__far* user) {
+static void __far* Z_Malloc(uint16_t size, uint_fast8_t tag, void __far*__far* user) {
 	void __far* ptr = Z_TryMalloc(size, tag, user);
 	if (!ptr)
 		I_Error ("Z_Malloc: failed to allocate %u B, max free block %li B, total free %li", size, Z_GetLargestFreeBlockSize(), Z_GetTotalFreeMemory());
@@ -769,7 +770,7 @@ boolean Z_IsEnoughFreeMemory(uint16_t size)
 //
 // Z_CheckHeap
 //
-void Z_CheckHeap (void)
+void Z_CheckHeap(void)
 {
 	memblock_t __far* block;
     segment_t mainzone_sentinal_segment = pointerToSegment(mainzone_sentinal);
