@@ -57,8 +57,8 @@ static uint8_t isKeyboardIsrSet = 0;
 
 static int32_t vel, svel, angvel;
 
-static int32_t posx, posy, posz, horiz = 100;
-static int16_t ang, cursectnum;
+static int32_t posx, posy, posz;
+static int16_t horiz = 100, ang, cursectnum;
 static int32_t hvel;
 
 static int32_t synctics = 0, lockclock = 0;

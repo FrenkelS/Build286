@@ -241,7 +241,7 @@ extern int32_t globalhisibility;
 extern int32_t viewingrangerecip;
 
 
-void drawrooms(int32_t daposx, int32_t daposy, int32_t daposz, int16_t daang, int32_t dahoriz, int16_t dacursectnum);
+void drawrooms(int32_t daposx, int32_t daposy, int32_t daposz, int16_t daang, int16_t dahoriz, int16_t dacursectnum);
 void setvmode(int32_t a);
 void setgamemode(void);
 void initengine(void);
@@ -250,7 +250,7 @@ void drawmasks(void);
 void initspritelists(void);
 void insertspritesect(int16_t sectnum);
 void insertspritestat(int16_t statnum);
-int32_t clipmove (int32_t *x, int32_t *y, int32_t *z, int16_t *sectnum, int32_t xvect, int32_t yvect, int32_t walldist, int32_t ceildist, int32_t flordist, uint32_t cliptype);
+int32_t clipmove(int32_t *x, int32_t *y, int32_t *z, int16_t *sectnum, int32_t xvect, int32_t yvect, int32_t walldist, int32_t ceildist, int32_t flordist, uint32_t cliptype);
 void updatesector(int32_t x, int32_t y, int16_t *sectnum);
 void getzrange(int32_t x, int32_t y, int32_t z, int16_t sectnum, int32_t *ceilz, int32_t *ceilhit, int32_t *florz, int32_t *florhit, int32_t walldist, uint32_t cliptype);
 void setaspect(int32_t daxrange, int32_t daaspect);
@@ -259,8 +259,8 @@ void rotatesprite (int32_t sx, int32_t sy, int32_t z, int16_t a, int16_t picnum,
 int32_t getceilzofslope(int16_t sectnum, int32_t dax, int32_t day);
 int32_t getflorzofslope(int16_t sectnum, int32_t dax, int32_t day);
 int32_t clipinsideboxline(int32_t x, int32_t y, int32_t x1, int32_t y1, int32_t x2, int32_t y2, int32_t walldist);
-int32_t inside (int32_t x, int32_t y, int16_t sectnum);
-void drawsprite (int32_t snum);
+int32_t inside(int32_t x, int32_t y, int16_t sectnum);
+void drawsprite(int32_t snum);
 int32_t spritewallfront(spritetype __far* s, int32_t w);
 void clearlongbuf(int32_t __far* s, int32_t c, size_t n);
 void maskwallscan(int32_t x1, int32_t x2, int16_t __far* uwal, int16_t __far* dwal, int32_t __far* swal, int32_t __far* lwal, int16_t globalpicnum);

@@ -251,7 +251,7 @@ static void parascan (int32_t sectnum, uint8_t dastat, int32_t bunch);
 
 
 void drawrooms(int32_t daposx, int32_t daposy, int32_t daposz,
-			 int16_t daang, int32_t dahoriz, int16_t dacursectnum)
+			 int16_t daang, int16_t dahoriz, int16_t dacursectnum)
 {
 	int32_t i, j, cz, fz, closest;
 	int16_t __far* shortptr1;
@@ -262,7 +262,7 @@ void drawrooms(int32_t daposx, int32_t daposy, int32_t daposz,
 	globalposx = daposx; globalposy = daposy; globalposz = daposz;
 	globalang = (daang&2047);
 
-	globalhoriz = mulscale16(dahoriz-100,xdimenscale)+(YDIM>>1);
+	globalhoriz = mulscale16((uint32_t)dahoriz - 100, xdimenscale) + (YDIM >> 1);
 	globaluclip = (0-globalhoriz)*xdimscale;
 	globaldclip = (YDIM-globalhoriz)*xdimscale;
 
