@@ -55,15 +55,12 @@ static volatile int8_t keystatus[256];
 static uint8_t isKeyboardIsrSet = 0;
 
 
-static int32_t vel, svel, angvel;
+static int16_t vel, svel, angvel;
 
 static int32_t posx, posy, posz;
 static int16_t horiz = 100, ang, cursectnum;
-static int32_t hvel;
 
-static int32_t synctics = 0, lockclock = 0;
-
-static char boardfilename[13];
+static int32_t synctics = 0;
 
 
 #define NUMOPTIONS 8
@@ -115,6 +112,8 @@ int M_CheckParm(char *check)
 
 int main(int argc, const char * const *argv)
 {
+	static int32_t lockclock = 0;
+	char boardfilename[13];
 	int16_t i;
 	int fil;
 	int16_t daang = 0;
@@ -222,6 +221,7 @@ int main(int argc, const char * const *argv)
 static void editinput(void)
 {
 	static size_t brightness = 0;
+	static int32_t hvel;
 	int32_t doubvel;
 	int32_t goalz, xvect, yvect, hiz, loz;
 	int32_t hihit, lohit;
