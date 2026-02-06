@@ -180,7 +180,7 @@ int main(int argc, const char * const *argv)
 
 	totalclock = 0;
 
-	while (keystatus[1] == 0)
+	while (keystatus[1] == 0) // Esc - Quit to DOS
 	{
 		drawrooms(posx, posy, posz, ang, horiz, cursectnum);
 
@@ -195,18 +195,18 @@ int main(int argc, const char * const *argv)
 
 		drawmasks();
 
-		if (keystatus[0xa]) setaspect(viewingrange + (viewingrange >> 8), yxaspect + (yxaspect >> 8));
-		if (keystatus[0xb]) setaspect(viewingrange - (viewingrange >> 8), yxaspect - (yxaspect >> 8));
-		if (keystatus[0xc]) setaspect(viewingrange, yxaspect - (yxaspect >> 8));
-		if (keystatus[0xd]) setaspect(viewingrange, yxaspect + (yxaspect >> 8));
+		if (keystatus[0xa]) setaspect(viewingrange + (viewingrange >> 8), yxaspect + (yxaspect >> 8)); // 9 - Change aspect ratio 
+		if (keystatus[0xb]) setaspect(viewingrange - (viewingrange >> 8), yxaspect - (yxaspect >> 8)); // 0
+		if (keystatus[0xc]) setaspect(viewingrange, yxaspect - (yxaspect >> 8)); // -
+		if (keystatus[0xd]) setaspect(viewingrange, yxaspect + (yxaspect >> 8)); // +
 
 		editinput();
 
-		daang += (keystatus[0x6] - keystatus[0x7]) * 16;
-		if (keystatus[0x2]) rotatesprite((int32_t)XDIM << 15, (int32_t)YDIM << 15, 65536L, daang, 75, 0, 0,     8 + 64, 0L, 0L, XDIM - 1L, YDIM - 1L);
-		if (keystatus[0x3]) rotatesprite((int32_t)XDIM << 15, (int32_t)YDIM << 15, 65536L, daang, 75, 0, 0,     8     , 0L, 0L, XDIM - 1L, YDIM - 1L);
-		if (keystatus[0x4]) rotatesprite((int32_t)XDIM << 15, (int32_t)YDIM << 15, 65536L, daang, 75, 0, 0, 1 + 8     , 0L, 0L, XDIM - 1L, YDIM - 1L);
-		if (keystatus[0x5]) rotatesprite((int32_t)XDIM << 15, (int32_t)YDIM << 15, 65536L, daang, 75, 0, 0, 1 + 8 + 32, 0L, 0L, XDIM - 1L, YDIM - 1L);
+		daang += (keystatus[0x6] - keystatus[0x7]) * 16; // 5, 6 - Rotate Build Engine sprite
+		if (keystatus[0x2]) rotatesprite((int32_t)XDIM << 15, (int32_t)YDIM << 15, 65536L, daang, 75, 0, 0,     8 + 64, 0L, 0L, XDIM - 1L, YDIM - 1L); // 1 - Render Build Engine sprite
+		if (keystatus[0x3]) rotatesprite((int32_t)XDIM << 15, (int32_t)YDIM << 15, 65536L, daang, 75, 0, 0,     8     , 0L, 0L, XDIM - 1L, YDIM - 1L); // 2
+		if (keystatus[0x4]) rotatesprite((int32_t)XDIM << 15, (int32_t)YDIM << 15, 65536L, daang, 75, 0, 0, 1 + 8     , 0L, 0L, XDIM - 1L, YDIM - 1L); // 3
+		if (keystatus[0x5]) rotatesprite((int32_t)XDIM << 15, (int32_t)YDIM << 15, 65536L, daang, 75, 0, 0, 1 + 8 + 32, 0L, 0L, XDIM - 1L, YDIM - 1L); // 4
 
 		nextpage();
 		synctics = totalclock - lockclock;
@@ -226,7 +226,7 @@ static void editinput(void)
 	int32_t goalz, xvect, yvect, hiz, loz;
 	int32_t hihit, lohit;
 
-	if (keystatus[0x57])  //F11 - brightness
+	if (keystatus[0x57])  // F11 - brightness
 	{
 		keystatus[0x57] = 0;
 
@@ -236,17 +236,17 @@ static void editinput(void)
 		setPalette();
 	}
 
-	if (keystatus[0x3b]) posx--;
-	if (keystatus[0x3c]) posx++;
-	if (keystatus[0x3d]) posy--;
-	if (keystatus[0x3e]) posy++;
-	if (keystatus[0x43]) ang--;
-	if (keystatus[0x44]) ang++;
+	if (keystatus[0x3b]) posx--; // F1 - Walk slowly
+	if (keystatus[0x3c]) posx++; // F2
+	if (keystatus[0x3d]) posy--; // F3 - Strafe left and right slowly
+	if (keystatus[0x3e]) posy++; // F4
+	if (keystatus[0x43]) ang--; // F9 - Walk slowly
+	if (keystatus[0x44]) ang++; // F10
 
 	if (angvel != 0)          //ang += angvel * constant
 	{                         //ENGINE calculates angvel for you
 		doubvel = synctics;
-		if (keystatus[buildkeys[4]])  //Lt. shift makes turn velocity 50% faster
+		if (keystatus[buildkeys[4]])  // Left Shift makes turn velocity 50% faster
 			doubvel += (synctics >> 1);
 		ang += ((angvel * doubvel) >> 4);
 		ang = (ang + 2048) & 2047;
@@ -255,7 +255,7 @@ static void editinput(void)
 	if ((vel | svel) != 0)
 	{
 		doubvel = synctics;
-		if (keystatus[buildkeys[4]])     //Lt. shift doubles forward velocity
+		if (keystatus[buildkeys[4]])     // Left Shift doubles forward velocity
 			doubvel += synctics;
 		xvect = 0;
 		yvect = 0;
@@ -277,26 +277,26 @@ static void editinput(void)
 	if (goalz < hiz + (16 << 8))   //ceiling&floor too close
 		goalz = ((loz + hiz) >> 1);
 
-	if (keystatus[buildkeys[8]])                            //A (stand high)
+	if (keystatus[buildkeys[8]])                            // A - stand high
 	{
-		if (keystatus[0x1d])
-			horiz = max(-100, horiz - ((keystatus[buildkeys[4]] + 1) << 2));
+		if (keystatus[0x1d]) // Left Ctrl - Look down
+			horiz = max(-100, horiz - ((keystatus[buildkeys[4]] + 1) << 2)); // Left Shift
 		else
 		{
 			goalz -= (16 << 8);
-			if (keystatus[buildkeys[4]])    //Either shift key
+			if (keystatus[buildkeys[4]])    // Left Shift
 				goalz -= (24 << 8);
 		}
 	}
 
-	if (keystatus[buildkeys[9]])                            //Z (stand low)
+	if (keystatus[buildkeys[9]])                            // Z - stand low
 	{
-		if (keystatus[0x1d])
+		if (keystatus[0x1d]) // Left Ctrl - Look up
 			horiz = min(300, horiz + ((keystatus[buildkeys[4]] + 1) << 2));
 		else
 		{
 			goalz += (12 << 8);
-			if (keystatus[buildkeys[4]])    //Either shift key
+			if (keystatus[buildkeys[4]])    // Left Shift
 				goalz += ( 12 << 8);
 		}
 	}
@@ -374,8 +374,6 @@ static void uninitkeys(void)
 }
 
 
-#define KEYFIFOSIZ 64
-
 static void __interrupt __far keyhandler(void)
 {
 	static volatile uint8_t readch, extended;
@@ -414,28 +412,29 @@ static void __interrupt __far keyhandler(void)
 
 static void keytimerstuff(void)
 {
-	if (keystatus[buildkeys[5]] == 0)
+	if (keystatus[buildkeys[5]] == 0) // Right Ctrl
 	{
-		if (keystatus[buildkeys[2]]) angvel = max(angvel - 16, -128);
-		if (keystatus[buildkeys[3]]) angvel = min(angvel + 16,  127);
+		if (keystatus[buildkeys[2]]) angvel = max(angvel - 16, -128); // Left - Turn
+		if (keystatus[buildkeys[3]]) angvel = min(angvel + 16,  127); // Right
 	}
 	else
 	{
-		if (keystatus[buildkeys[2]]) svel = min(svel + 8,  127);
-		if (keystatus[buildkeys[3]]) svel = max(svel - 8, -128);
+		if (keystatus[buildkeys[2]]) svel = min(svel + 8,  127); // Left - Strafe
+		if (keystatus[buildkeys[3]]) svel = max(svel - 8, -128); // Right
 	}
 
-	if (keystatus[buildkeys[0]])   vel = min( vel + 8,  127);
-	if (keystatus[buildkeys[1]])   vel = max( vel - 8, -128);
-	if (keystatus[buildkeys[12]]) svel = min(svel + 8,  127);
-	if (keystatus[buildkeys[13]]) svel = max(svel - 8, -128);
+	if (keystatus[buildkeys[0]])   vel = min( vel + 8,  127); // Up - Move
+	if (keystatus[buildkeys[1]])   vel = max( vel - 8, -128); // Down
+
+	if (keystatus[buildkeys[12]]) svel = min(svel + 8,  127); // < - Strafe
+	if (keystatus[buildkeys[13]]) svel = max(svel - 8, -128); // >
 
 	if (angvel < 0) angvel = min(angvel + 12, 0);
 	if (angvel > 0) angvel = max(angvel - 12, 0);
-	if (svel < 0) svel = min(svel + 2, 0);
-	if (svel > 0) svel = max(svel - 2, 0);
-	if (vel < 0)   vel = min( vel + 2, 0);
-	if (vel > 0)   vel = max( vel - 2, 0);
+	if (  svel < 0)   svel = min(  svel + 2, 0);
+	if (  svel > 0)   svel = max(  svel - 2, 0);
+	if (   vel < 0)    vel = min(   vel + 2, 0);
+	if (   vel > 0)    vel = max(   vel - 2, 0);
 }
 
 
