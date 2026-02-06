@@ -1847,7 +1847,7 @@ void updatesector(int32_t x, int32_t y, int16_t *sectnum)
 }
 
 void getzrange(int32_t x, int32_t y, int32_t z, int16_t sectnum,
-			 int32_t *ceilz, int32_t *ceilhit, int32_t *florz, int32_t *florhit,
+			 int32_t *ceilz, int32_t *florz,
 			 int32_t walldist, uint32_t cliptype)
 {
 	sectortype __far* sec;
@@ -1863,8 +1863,8 @@ void getzrange(int32_t x, int32_t y, int32_t z, int16_t sectnum,
 
 	if (sectnum < 0)
 	{
-		*ceilz = 0x80000000; *ceilhit = -1;
-		*florz = 0x7fffffff; *florhit = -1;
+		*ceilz = 0x80000000;
+		*florz = 0x7fffffff;
 		return;
 	}
 
@@ -1874,7 +1874,6 @@ void getzrange(int32_t x, int32_t y, int32_t z, int16_t sectnum,
 	xmax = x+i; ymax = y+i;
 
 	getzsofslope(sectnum,x,y,ceilz,florz);
-	*ceilhit = sectnum+16384; *florhit = sectnum+16384;
 
 	dawalclipmask = (cliptype&65535);
 	dasprclipmask = (cliptype>>16);
@@ -1926,8 +1925,8 @@ void getzrange(int32_t x, int32_t y, int32_t z, int16_t sectnum,
 
 					//It actually got here, through all the continue's!!!
 				getzsofslope((int16_t)k,x,y,&daz,&daz2);
-				if (daz > *ceilz) { *ceilz = daz; *ceilhit = k+16384; }
-				if (daz2 < *florz) { *florz = daz2; *florhit = k+16384; }
+				if (daz > *ceilz) { *ceilz = daz; }
+				if (daz2 < *florz) { *florz = daz2; }
 			}
 		}
 		clipsectcnt++;
@@ -2033,8 +2032,8 @@ void getzrange(int32_t x, int32_t y, int32_t z, int16_t sectnum,
 
 				if (clipyou != 0)
 				{
-					if ((z > daz) && (daz > *ceilz)) { *ceilz = daz; *ceilhit = j+49152; }
-					if ((z < daz2) && (daz2 < *florz)) { *florz = daz2; *florhit = j+49152; }
+					if ((z > daz) && (daz > *ceilz)) { *ceilz = daz; }
+					if ((z < daz2) && (daz2 < *florz)) { *florz = daz2; }
 				}
 			}
 		}

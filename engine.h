@@ -252,7 +252,7 @@ void insertspritesect(int16_t sectnum);
 void insertspritestat(int16_t statnum);
 int32_t clipmove(int32_t *x, int32_t *y, int32_t *z, int16_t *sectnum, int32_t xvect, int32_t yvect, int32_t walldist, int32_t ceildist, int32_t flordist, uint32_t cliptype);
 void updatesector(int32_t x, int32_t y, int16_t *sectnum);
-void getzrange(int32_t x, int32_t y, int32_t z, int16_t sectnum, int32_t *ceilz, int32_t *ceilhit, int32_t *florz, int32_t *florhit, int32_t walldist, uint32_t cliptype);
+void getzrange(int32_t x, int32_t y, int32_t z, int16_t sectnum, int32_t *ceilz, int32_t *florz, int32_t walldist, uint32_t cliptype);
 void setaspect(int32_t daxrange, int32_t daaspect);
 void rotatesprite (int32_t sx, int32_t sy, int32_t z, int16_t a, int16_t picnum, int8_t dashade, uint8_t dapalnum, uint8_t dastat, int32_t cx1, int32_t cy1, int32_t cx2, int32_t cy2);
 

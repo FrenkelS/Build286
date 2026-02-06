@@ -224,7 +224,6 @@ static void editinput(void)
 	static int32_t hvel;
 	int32_t doubvel;
 	int32_t goalz, xvect, yvect, hiz, loz;
-	int32_t hihit, lohit;
 
 	if (keystatus[0x57])  // F11 - brightness
 	{
@@ -271,7 +270,7 @@ static void editinput(void)
 		}
 		clipmove(&posx, &posy, &posz, &cursectnum, xvect, yvect, 128L, 4L << 8, 4L << 8, CLIPMASK0);
 	}
-	getzrange(posx, posy, posz, cursectnum, &hiz, &hihit, &loz, &lohit, 128L, CLIPMASK0);
+	getzrange(posx, posy, posz, cursectnum, &hiz, &loz, 128L, CLIPMASK0);
 
 	goalz = loz - (32 << 8);   //playerheight pixels above floor
 	if (goalz < hiz + (16 << 8))   //ceiling&floor too close
