@@ -25,7 +25,7 @@ sintable[2048] is a sin table with 2048 angles rather than the
 extern int16_t sintable[2048];
 
 extern int16_t radarang[1280];
-extern uint8_t britable[16][64];
+extern uint8_t __far britable[16][64];
 
 
 void loadtables(void);

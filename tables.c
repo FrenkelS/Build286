@@ -26,7 +26,7 @@ const int32_t pow2long[32] =
 
 int16_t sintable[2048];
 int16_t radarang[1280];
-uint8_t britable[16][64];
+uint8_t __far britable[16][64];
 
 
 void loadtables(void)
