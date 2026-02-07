@@ -1,4 +1,4 @@
-set CFLAGS=-march=i386 -O1 -flto -fwhole-program -Wpedantic -Wall -Wextra -Wno-attributes -DRANGECHECK
+set CFLAGS=-march=i386 -O1 -flto -fwhole-program -Wall -Wextra -Wpedantic -Wno-attributes -DRANGECHECK
 
 @set GLOBOBJS=
 @set GLOBOBJS=%GLOBOBJS% draw.c
