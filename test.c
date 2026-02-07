@@ -209,6 +209,11 @@ int main(int argc, const char * const *argv)
 		if (keystatus[0x5]) rotatesprite((int32_t)XDIM << 15, (int32_t)YDIM << 15, 65536L, daang, 75, 0, 0, 1 + 8 + 32, 0L, 0L, XDIM - 1L, YDIM - 1L); // 4
 
 		nextpage();
+#if defined RANGECHECK
+		if ((numframes & 31) == 31)
+			Z_CheckHeap();
+#endif
+
 		synctics = totalclock - lockclock;
 		lockclock += synctics;
 	}
