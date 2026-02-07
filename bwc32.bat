@@ -1,4 +1,4 @@
-set CFLAGS=-3r -ot -bcl=dos4g -q -wx
+set CFLAGS=-3r -ot -bcl=dos4g -q -wx -DRANGECHECK
 
 @set GLOBOBJS=
 @set GLOBOBJS=%GLOBOBJS% engine.c

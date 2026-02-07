@@ -201,12 +201,10 @@ uint8_t __far* tryloadtile(int16_t tilenume)
 #if defined RANGECHECK
 	if (dasiz <= 0)
 		I_Error("dasiz %li too small", dasiz);
-	if (dasiz >= 0x10000)
-		I_Error("dasiz %li too big, %i %i %i", dasiz, tilenume, tilesizx[tilenume], tilesizy[tilenume]);
-#else
+#endif
+
 	if (dasiz >= 0x10000)
 		return NULL;
-#endif
 
 	if (!Z_IsEnoughFreeMemory((uint16_t)dasiz))
 		return NULL;
