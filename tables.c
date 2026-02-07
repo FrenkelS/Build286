@@ -5,7 +5,6 @@
 // This file IS NOT A PART OF Ken Silverman's original release
 
 #include <stdint.h>
-#include <stdio.h>
 #include "filesystem.h"
 #include "tables.h"
 #include "test.h"
@@ -26,7 +25,6 @@ const int32_t pow2long[32] =
 
 int16_t sintable[2048];
 int16_t radarang[1280];
-uint8_t __far britable[16][64];
 
 
 void loadtables(void)
@@ -46,9 +44,9 @@ void loadtables(void)
 	for (i = 0; i < 640; i++)
 		radarang[1279 - i] = -radarang[i];
 
-	klseek(fil, 1024, SEEK_CUR); // textfont
-	klseek(fil, 1024, SEEK_CUR); // smalltextfont
-	kread(fil, britable, sizeof(britable));
+	// 1024    textfont
+	// 1024    smalltextfont
+	// 16 * 64 britable
 
 	kclose(fil);
 }

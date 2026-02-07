@@ -7,6 +7,7 @@
 #include <conio.h>
 #include <dos.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include "compiler.h"
 #include "filesystem.h"
@@ -85,14 +86,21 @@ void setBrightness(size_t dabrightness)
 
 void setPalette(void)
 {
-	int_fast16_t i;
-	uint8_t tempbuf[256 * 3];
+	int fil;
+	uint8_t britable[16][64];
 	uint8_t *s;
 	uint8_t *d;
+	uint8_t tempbuf[sizeof(palette)];
+	size_t i;
+
+	fil = kopen4load("tables.dat", 0);
+	klseek(fil, (2048 * 2) + (640 * 2) + 1024 + 1024, SEEK_SET);
+	kread(fil, britable, sizeof(britable));
+	kclose(fil);
 
 	s = palette;
 	d = tempbuf;
-	for (i = 0; i < 256 * 3; i++)
+	for (i = 0; i < sizeof(palette); i++)
 	{
 		*d++ = britable[curbrightness][*s++];
 	}

@@ -7,8 +7,9 @@
 #ifndef __FILESYSTEM__
 #define __FILESYSTEM__
 
-#include <stdint.h>
 #include <fcntl.h>
+#include <stdint.h>
+#include <stdio.h>
 #include "compiler.h"
 
 void initgroupfile(char *filename);

@@ -16,7 +16,7 @@
 #include "z_zone.h"
 
 #define MAXGROUPFILES 1 /*4*/     //Warning: Fix groupfil if this is changed
-#define MAXOPENFILES 1 /*64*/     //Warning: Fix filehan if this is changed
+#define MAXOPENFILES 2 /*64*/     //Warning: Fix filehan if this is changed
 
 static const uint8_t toupperlookup[256] =
 {
@@ -49,7 +49,7 @@ static uint8_t filegrp[MAXOPENFILES];
 static off_t filepos[MAXOPENFILES];
 static int filehan[MAXOPENFILES] =
 {
-	-1
+	-1,-1
 	//-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
 	//-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
 	//-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
