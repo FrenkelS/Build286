@@ -219,11 +219,11 @@ void setTotalclocklock(void)
 }
 
 
-int32_t animateoffs(int16_t tilenum)
+int_fast16_t animateoffs(int16_t tilenum)
 {
-	int32_t offs;
+	int_fast16_t offs;
 	int32_t i;
-	int32_t k;
+	int_fast16_t k;
 
 	offs = 0;
 	i = totalclocklock >> ((picanm[tilenum] >> 24) & 15);

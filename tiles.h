@@ -29,6 +29,6 @@ void unloadpics(void);
 uint8_t __far* loadtile(int16_t tilenume);
 uint8_t __far* tryloadtile(int16_t tilenume);
 void setTotalclocklock(void);
-int32_t animateoffs(int16_t tilenum);
+int_fast16_t animateoffs(int16_t tilenum);
 
 #endif
