@@ -8,3 +8,4 @@
 #include "compiler.h"
 
 uint8_t __far* _s_screen;
+uint8_t __far* videomemory;

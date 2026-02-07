@@ -1370,6 +1370,7 @@ void setgamemode(void)
 
 	setvmode(0x13);
 	_s_screen = Z_MallocStatic((size_t)((int32_t)XDIM * YDIM));
+	videomemory = kMK_FP(0xa000, 0 + __djgpp_conventional_base);
 
 		//Force drawrooms to call dosetaspect & recalculate stuff
 	oxyaspect = oxdimen = oviewingrange = -1;
@@ -1480,7 +1481,7 @@ void nextpage(void)
 								per->cx1,per->cy1,per->cx2,per->cy2);
 	}
 
-	_fmemcpy(kMK_FP(0xa000, 0 + __djgpp_conventional_base), _s_screen, (size_t)((int32_t)XDIM * YDIM));
+	_fmemcpy(videomemory, _s_screen, (size_t)((int32_t)XDIM * YDIM));
 
 	for(i=permtail;i!=permhead;i=((i+1)&(MAXPERMS-1)))
 	{

@@ -11,5 +11,6 @@
 #include "compiler.h"
 
 extern uint8_t __far* _s_screen;
+extern uint8_t __far* videomemory;
 
 #endif
