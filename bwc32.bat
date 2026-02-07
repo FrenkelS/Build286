@@ -1,6 +1,7 @@
 set CFLAGS=-3r -ot -bcl=dos4g -q -wx -DRANGECHECK
 
 @set GLOBOBJS=
+@set GLOBOBJS=%GLOBOBJS% draw.c
 @set GLOBOBJS=%GLOBOBJS% engine.c
 @set GLOBOBJS=%GLOBOBJS% engine2.c
 @set GLOBOBJS=%GLOBOBJS% filesystem.c

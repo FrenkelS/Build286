@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "compiler.h"
+#include "draw.h"
 #include "engine.h"
 #include "p_setup.h"
 #include "palette.h"

@@ -27,8 +27,6 @@ int16_t pskybits;
 int16_t __far headspritesect[MAXSECTORS+1];
 int16_t __far nextspritesect[MAXSPRITES];
 
-uint8_t __far* _s_screen;
-
 int32_t transarea = 0;
 
 int32_t __far xb1[MAXWALLSB];

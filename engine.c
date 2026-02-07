@@ -25,6 +25,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include "compiler.h"
+#include "draw.h"
 #include "engine.h"
 #include "filesystem.h"
 #include "p_setup.h"
