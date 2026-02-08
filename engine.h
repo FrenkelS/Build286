@@ -254,10 +254,10 @@ void rotatesprite(int32_t sx, int32_t sy, int32_t z, int16_t a, int16_t picnum, 
 
 int32_t getceilzofslope(int16_t sectnum, int32_t dax, int32_t day);
 int32_t getflorzofslope(int16_t sectnum, int32_t dax, int32_t day);
-int32_t clipinsideboxline(int32_t x, int32_t y, int32_t x1, int32_t y1, int32_t x2, int32_t y2, int32_t walldist);
-int32_t inside(int32_t x, int32_t y, int16_t sectnum);
+int_fast8_t clipinsideboxline(int32_t x, int32_t y, int32_t x1, int32_t y1, int32_t x2, int32_t y2, int32_t walldist);
+int_fast8_t inside(int32_t x, int32_t y, int16_t sectnum);
 void drawsprite(int32_t snum);
-int32_t spritewallfront(spritetype __far* s, int32_t w);
+int_fast8_t spritewallfront(spritetype __far* s, int32_t w);
 void clearlongbuf(int32_t __far* s, int32_t c, size_t n);
 void maskwallscan(int32_t x1, int32_t x2, int16_t __far* uwal, int16_t __far* dwal, int32_t __far* swal, int32_t __far* lwal, int16_t globalpicnum);
 void transmaskwallscan(int32_t x1, int32_t x2, int16_t globalpicnum);

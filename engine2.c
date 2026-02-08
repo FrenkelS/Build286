@@ -172,31 +172,48 @@ void clearlongbuf(int32_t __far* s, int32_t c, size_t n)
 }
 
 
-static int32_t rintersect(int32_t x1, int32_t y1, int32_t z1, int32_t vx, int32_t vy, int32_t vz, int32_t x3,
+static int_fast8_t rintersect(int32_t x1, int32_t y1, int32_t z1, int32_t vx, int32_t vy, int32_t vz, int32_t x3,
 			  int32_t y3, int32_t x4, int32_t y4, int32_t *intx, int32_t *inty, int32_t *intz)
 {     //p1 towards p2 is a ray
 	int32_t x34, y34, x31, y31, bot, topt, topu, t;
 
-	x34 = x3-x4; y34 = y3-y4;
-	bot = vx*y34 - vy*x34;
+	x34 = x3 - x4;
+	y34 = y3 - y4;
+	bot = vx * y34 - vy * x34;
+
 	if (bot >= 0)
 	{
-		if (bot == 0) return(0);
-		x31 = x3-x1; y31 = y3-y1;
-		topt = x31*y34 - y31*x34; if (topt < 0) return(0);
-		topu = vx*y31 - vy*x31; if ((topu < 0) || (topu >= bot)) return(0);
+		if (bot == 0)
+			return 0;
+
+		x31 = x3 - x1;
+		y31 = y3 - y1;
+		topt = x31 * y34 - y31 * x34;
+		if (topt < 0)
+			return 0;
+
+		topu = vx * y31 - vy * x31;
+		if ((topu < 0) || (topu >= bot))
+			return 0;
 	}
 	else
 	{
-		x31 = x3-x1; y31 = y3-y1;
-		topt = x31*y34 - y31*x34; if (topt > 0) return(0);
-		topu = vx*y31 - vy*x31; if ((topu > 0) || (topu <= bot)) return(0);
+		x31 = x3 - x1;
+		y31 = y3 - y1;
+		topt = x31 * y34 - y31 * x34;
+		if (topt > 0)
+			return 0;
+
+		topu = vx * y31 - vy * x31;
+		if ((topu > 0) || (topu <= bot))
+			return 0;
 	}
-	t = divscale16(topt,bot);
-	*intx = x1 + mulscale16(vx,t);
-	*inty = y1 + mulscale16(vy,t);
-	*intz = z1 + mulscale16(vz,t);
-	return(1);
+
+	t = divscale16(topt, bot);
+	*intx = x1 + mulscale16(vx, t);
+	*inty = y1 + mulscale16(vy, t);
+	*intz = z1 + mulscale16(vz, t);
+	return 1;
 }
 
 
@@ -221,7 +238,7 @@ static int32_t raytrace(int32_t x3, int32_t y3, int32_t *x4, int32_t *y4)
 		cnt = 256;
 		do
 		{
-			cnt--; if (cnt < 0) { *x4 = x3; *y4 = y3; return(z); }
+			cnt--; if (cnt < 0) { *x4 = x3; *y4 = y3; return z; }
 			nintx = x3 + scale(x43,topu,bot);
 			ninty = y3 + scale(y43,topu,bot);
 			topu--;
@@ -230,7 +247,8 @@ static int32_t raytrace(int32_t x3, int32_t y3, int32_t *x4, int32_t *y4)
 		if (klabs(x3-nintx)+klabs(y3-ninty) < klabs(x3-*x4)+klabs(y3-*y4))
 			{ *x4 = nintx; *y4 = ninty; hitwall = z; }
 	}
-	return(hitwall);
+
+	return hitwall;
 }
 
 
@@ -587,12 +605,18 @@ int32_t getceilzofslope(int16_t sectnum, int32_t dax, int32_t day)
 	int32_t dx, dy, i, j;
 	walltype __far* wal;
 
-	if (!(sector[sectnum].ceilingstat&2)) return(sector[sectnum].ceilingz);
+	if (!(sector[sectnum].ceilingstat & 2))
+		return sector[sectnum].ceilingz;
+
 	wal = &wall[sector[sectnum].wallptr];
-	dx = wall[wal->point2].x-wal->x; dy = wall[wal->point2].y-wal->y;
-	i = (msqrtasm(dx*dx+dy*dy)<<5); if (i == 0) return(sector[sectnum].ceilingz);
-	j = dmulscale3(dx,day-wal->y,-dy,dax-wal->x);
-	return(sector[sectnum].ceilingz+scale(sector[sectnum].ceilingheinum,j,i));
+	dx = wall[wal->point2].x - wal->x;
+	dy = wall[wal->point2].y - wal->y;
+	i = msqrtasm(dx * dx + dy * dy) << 5;
+	if (i == 0)
+		return sector[sectnum].ceilingz;
+
+	j = dmulscale3(dx, day - wal->y, -dy, dax - wal->x);
+	return sector[sectnum].ceilingz + scale(sector[sectnum].ceilingheinum, j, i);
 }
 
 
@@ -601,92 +625,103 @@ int32_t getflorzofslope(int16_t sectnum, int32_t dax, int32_t day)
 	int32_t dx, dy, i, j;
 	walltype __far* wal;
 
-	if (!(sector[sectnum].floorstat&2)) return(sector[sectnum].floorz);
+	if (!(sector[sectnum].floorstat & 2))
+		return(sector[sectnum].floorz);
+
 	wal = &wall[sector[sectnum].wallptr];
-	dx = wall[wal->point2].x-wal->x; dy = wall[wal->point2].y-wal->y;
-	i = (msqrtasm(dx*dx+dy*dy)<<5); if (i == 0) return(sector[sectnum].floorz);
-	j = dmulscale3(dx,day-wal->y,-dy,dax-wal->x);
-	return(sector[sectnum].floorz+scale(sector[sectnum].floorheinum,j,i));
+	dx = wall[wal->point2].x - wal->x;
+	dy = wall[wal->point2].y - wal->y;
+	i = msqrtasm(dx * dx + dy * dy) << 5;
+	if (i == 0)
+		return sector[sectnum].floorz;
+
+	j = dmulscale3(dx, day - wal->y, -dy, dax - wal->x);
+	return sector[sectnum].floorz + scale(sector[sectnum].floorheinum, j, i);
 }
 
 
-int32_t clipinsideboxline(int32_t x, int32_t y, int32_t x1, int32_t y1, int32_t x2, int32_t y2, int32_t walldist)
+int_fast8_t clipinsideboxline(int32_t x, int32_t y, int32_t x1, int32_t y1, int32_t x2, int32_t y2, int32_t walldist)
 {
 	int32_t r;
 
-	r = (walldist<<1);
+	r = walldist << 1;
 
-	x1 += walldist-x;
-	x2 += walldist-x;
+	x1 += walldist - x;
+	x2 += walldist - x;
 	if ((x1 < 0) && (x2 < 0))
-		return(0);
+		return 0;
 	if ((x1 >= r) && (x2 >= r))
-		return(0);
+		return 0;
 
-	y1 += walldist-y;
-	y2 += walldist-y;
+	y1 += walldist - y;
+	y2 += walldist - y;
 	if ((y1 < 0) && (y2 < 0))
-		return(0);
+		return 0;
 	if ((y1 >= r) && (y2 >= r))
-		return(0);
+		return 0;
 
-	x2 -= x1; y2 -= y1;
-	if (x2*(walldist-y1) >= y2*(walldist-x1))  //Front
+	x2 -= x1;
+	y2 -= y1;
+	if (x2 * (walldist - y1) >= y2 * (walldist - x1))  //Front
 	{
 		if (x2 > 0)
-			x2 *= (0-y1);
+			x2 *= (0 - y1);
 		else
-			x2 *= (r-y1);
+			x2 *= (r - y1);
 
 		if (y2 > 0)
-			y2 *= (r-x1);
+			y2 *= (r - x1);
 		else
-			y2 *= (0-x1);
+			y2 *= (0 - x1);
 
-		return(x2 < y2);
+		return x2 < y2;
 	}
 
 	if (x2 > 0)
-		x2 *= (r-y1);
+		x2 *= (r - y1);
 	else
-		x2 *= (0-y1);
+		x2 *= (0 - y1);
 
 	if (y2 > 0)
-		y2 *= (0-x1);
+		y2 *= (0 - x1);
 	else
-		y2 *= (r-x1);
+		y2 *= (r - x1);
 
-	return((x2 >= y2)<<1);
+	return (x2 >= y2) << 1;
 }
 
 
-int32_t inside(int32_t x, int32_t y, int16_t sectnum)
+int_fast8_t inside(int32_t x, int32_t y, int16_t sectnum)
 {
 	walltype __far* wal;
-	int32_t i, x1, y1, x2, y2;
+	int16_t i;
+	int32_t x1, y1, x2, y2;
 	uint32_t cnt;
 
 	if ((sectnum < 0) || (sectnum >= numsectors))
-		return(-1);
+		return -1;
 
 	cnt = 0;
 	wal = &wall[sector[sectnum].wallptr];
 	i = sector[sectnum].wallnum;
 	do
 	{
-		y1 = wal->y-y; y2 = wall[wal->point2].y-y;
-		if ((y1^y2) < 0)
+		y1 = wal->y - y;
+		y2 = wall[wal->point2].y - y;
+		if ((y1 ^ y2) < 0)
 		{
-			x1 = wal->x-x; x2 = wall[wal->point2].x-x;
-			if ((x1^x2) >= 0)
+			x1 = wal->x - x;
+			x2 = wall[wal->point2].x - x;
+			if ((x1 ^ x2) >= 0)
 				cnt ^= x1;
 			else
-				cnt ^= (x1*y2-x2*y1)^y2;
+				cnt ^= (x1 * y2 - x2 * y1) ^ y2;
 		}
-		wal++; i--;
+		wal++;
+		i--;
 	} while (i);
 
-	return(cnt>>31);
+	return cnt >> 31;
 }
 
 
@@ -719,9 +754,9 @@ static void a_mhline(uint8_t __far* bufplc, uint8_t __far* paloffs, uint32_t bx,
 {
 	uint8_t ch;
 
-	for(cntup16>>=16;cntup16>0;cntup16--)
+	for (cntup16 >>= 16; cntup16 > 0; cntup16--)
 	{
-		ch = bufplc[((bx>>(32-_a_glogx))<<_a_glogy)+(by>>(32-_a_glogy))];
+		ch = bufplc[((bx >> (32 - _a_glogx)) << _a_glogy) + (by >> (32 - _a_glogy))];
 		if (ch != 255)
 			*p = paloffs[ch];
 		bx += asm1;
@@ -738,9 +773,9 @@ static void a_thline(uint8_t __far* bufplc, uint8_t __far* paloffs, uint32_t bx,
 
 	if (_a_transmode)
 	{
-		for(cntup16>>=16;cntup16>0;cntup16--)
+		for(cntup16 >>= 16; cntup16 > 0; cntup16--)
 		{
-			ch = bufplc[((bx>>(32-_a_glogx))<<_a_glogy)+(by>>(32-_a_glogy))];
+			ch = bufplc[((bx >> (32 - _a_glogx)) << _a_glogy) + (by >> (32 - _a_glogy))];
 			if (ch != 255)
 				*p = translucfunc(*p, paloffs[ch]);
 			bx += asm1;
@@ -750,9 +785,9 @@ static void a_thline(uint8_t __far* bufplc, uint8_t __far* paloffs, uint32_t bx,
 	}
 	else
 	{
-		for(cntup16>>=16;cntup16>0;cntup16--)
+		for(cntup16 >>= 16; cntup16 > 0; cntup16--)
 		{
-			ch = bufplc[((bx>>(32-_a_glogx))<<_a_glogy)+(by>>(32-_a_glogy))];
+			ch = bufplc[((bx >> (32 - _a_glogx)) << _a_glogy) + (by >> (32 - _a_glogy))];
 			if (ch != 255)
 				*p = translucfunc(paloffs[ch], *p);
 			bx += asm1;
@@ -842,14 +877,16 @@ static void ceilspritescan(int32_t x1, int32_t x2, uint8_t __far* globalbufplc)
 }
 
 
-int32_t spritewallfront(spritetype __far* s, int32_t w)
+int_fast8_t spritewallfront(spritetype __far* s, int32_t w)
 {
 	walltype __far* wal;
 	int32_t x1, y1;
 
-	wal = &wall[w]; x1 = wal->x; y1 = wal->y;
+	wal = &wall[w];
+	x1 = wal->x;
+	y1 = wal->y;
 	wal = &wall[wal->point2];
-	return (dmulscale32(wal->x-x1,s->y-y1,-(s->x-x1),wal->y-y1) >= 0);
+	return dmulscale32(wal->x - x1, s->y - y1, -(s->x - x1), wal->y - y1) >= 0;
 }
 
 
@@ -858,9 +895,9 @@ static void a_mvlineasm1(int32_t vinc, uint8_t __far* paloffs, int32_t cnt, uint
 {
 	uint8_t ch;
 
-	for(;cnt>=0;cnt--)
+	for (; cnt >= 0; cnt--)
 	{
-		ch = bufplc[vplc>>_a_glogy];
+		ch = bufplc[vplc >> _a_glogy];
 
 		if (ch != 255)
 			*p = paloffs[ch];
@@ -934,23 +971,23 @@ static void a_tvlineasm1(int32_t vinc, uint8_t __far* paloffs, int32_t cnt, uint
 
 	if (_a_transmode)
 	{
-		for(;cnt>=0;cnt--)
+		for(; cnt >= 0; cnt--)
 		{
-			ch = bufplc[vplc>>_a_glogy];
+			ch = bufplc[vplc >> _a_glogy];
 			if (ch != 255)
 				*p = translucfunc(*p, paloffs[ch]);
-			p += XDIM;
+			p    += XDIM;
 			vplc += vinc;
 		}
 	}
 	else
 	{
-		for(;cnt>=0;cnt--)
+		for(; cnt >= 0; cnt--)
 		{
-			ch = bufplc[vplc>>_a_glogy];
+			ch = bufplc[vplc >> _a_glogy];
 			if (ch != 255)
 				*p = translucfunc(paloffs[ch], *p);
-			p += XDIM;
+			p    += XDIM;
 			vplc += vinc;
 		}
 	}
@@ -1026,30 +1063,30 @@ uint8_t owallmost(int16_t __far* mostbuf, int32_t w, int32_t z)
 	z <<= 7;
 	s1 = mulscale20(globaluclip,yb1[w]); s2 = mulscale20(globaluclip,yb2[w]);
 	s3 = mulscale20(globaldclip,yb1[w]); s4 = mulscale20(globaldclip,yb2[w]);
-	bad = (z<s1)+((z<s2)<<1)+((z>s3)<<2)+((z>s4)<<3);
+	bad = (z < s1) + ((z < s2) << 1) + ((z > s3) << 2) + ((z > s4) << 3);
 
 	ix1 = xb1[w]; iy1 = yb1[w];
 	ix2 = xb2[w]; iy2 = yb2[w];
 
-	if ((bad&3) == 3)
+	if ((bad & 3) == 3)
 	{
 		_fmemset(&mostbuf[ix1], 0, (ix2 - ix1 + 1) * sizeof(mostbuf[0]));
-		return(bad);
+		return bad;
 	}
 
-	if ((bad&12) == 12)
+	if ((bad & 12) == 12)
 	{
-		clearshortbuf(&mostbuf[ix1],YDIM,ix2-ix1+1);
-		return(bad);
+		clearshortbuf(&mostbuf[ix1], YDIM, ix2 - ix1 + 1);
+		return bad;
 	}
 
-	if (bad&3)
+	if (bad & 3)
 	{
-		t = divscale30(z-s1,s2-s1);
-		inty = yb1[w] + mulscale30(yb2[w]-yb1[w],t);
-		xcross = xb1[w] + scale(mulscale30(yb2[w],t),xb2[w]-xb1[w],inty);
+		t = divscale30(z - s1, s2 - s1);
+		inty   = yb1[w] + mulscale30(yb2[w] - yb1[w], t);
+		xcross = xb1[w] + scale(mulscale30(yb2[w], t), xb2[w] - xb1[w], inty);
 
-		if ((bad&3) == 2)
+		if ((bad & 3) == 2)
 		{
 			if (xb1[w] <= xcross) { iy2 = inty; ix2 = xcross; }
 			_fmemset(&mostbuf[xcross + 1], 0, (xb2[w] - xcross) * sizeof(mostbuf[0]));
@@ -1061,34 +1098,34 @@ uint8_t owallmost(int16_t __far* mostbuf, int32_t w, int32_t z)
 		}
 	}
 
-	if (bad&12)
+	if (bad & 12)
 	{
-		t = divscale30(z-s3,s4-s3);
-		inty = yb1[w] + mulscale30(yb2[w]-yb1[w],t);
-		xcross = xb1[w] + scale(mulscale30(yb2[w],t),xb2[w]-xb1[w],inty);
+		t = divscale30(z - s3, s4 - s3);
+		inty   = yb1[w] + mulscale30(yb2[w] - yb1[w], t);
+		xcross = xb1[w] + scale(mulscale30(yb2[w], t), xb2[w] - xb1[w], inty);
 
-		if ((bad&12) == 8)
+		if ((bad & 12) == 8)
 		{
 			if (xb1[w] <= xcross) { iy2 = inty; ix2 = xcross; }
-			clearshortbuf(&mostbuf[xcross+1],YDIM,xb2[w]-xcross);
+			clearshortbuf(&mostbuf[xcross + 1], YDIM, xb2[w] - xcross);
 		}
 		else
 		{
 			if (xcross <= xb2[w]) { iy1 = inty; ix1 = xcross; }
-			clearshortbuf(&mostbuf[xb1[w]],YDIM,xcross-xb1[w]+1);
+			clearshortbuf(&mostbuf[xb1[w]], YDIM, xcross - xb1[w] + 1);
 		}
 	}
 
-	y = (scale(z,xdimenscale,iy1)<<4);
-	yinc = ((scale(z,xdimenscale,iy2)<<4)-y) / (ix2-ix1+1);
-	qinterpolatedown16short(&mostbuf[ix1],ix2-ix1+1,y+(globalhoriz<<16),yinc);
+	y = scale(z, xdimenscale, iy1) << 4;
+	yinc = ((scale(z, xdimenscale, iy2) << 4) - y) / (ix2 - ix1 + 1);
+	qinterpolatedown16short(&mostbuf[ix1], ix2 - ix1 + 1, y + (globalhoriz << 16), yinc);
 
-	if (mostbuf[ix1] < 0) mostbuf[ix1] = 0;
+	if (mostbuf[ix1] < 0)    mostbuf[ix1] = 0;
 	if (mostbuf[ix1] > YDIM) mostbuf[ix1] = YDIM;
-	if (mostbuf[ix2] < 0) mostbuf[ix2] = 0;
+	if (mostbuf[ix2] < 0)    mostbuf[ix2] = 0;
 	if (mostbuf[ix2] > YDIM) mostbuf[ix2] = YDIM;
 
-	return(bad);
+	return bad;
 }
 
 
