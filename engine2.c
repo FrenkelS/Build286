@@ -49,7 +49,7 @@ static uint32_t msqrtasm(uint32_t c)
 		if (c >= a)
 		{
 			c -= a;
-			a += b*4;
+			a += b * 4;
 		}
 
 		a -= b;
@@ -71,7 +71,7 @@ static int32_t scale(int32_t a, int32_t b, int32_t c)
 }
 
 
-static int32_t mulscale(int32_t a, int32_t b, int32_t c)
+static int32_t mulscale(int32_t a, int32_t b, uint_fast8_t c)
 {
 	return ((int64_t)a * b) >> c;
 }
@@ -103,7 +103,7 @@ static int32_t mulscale(int32_t a, int32_t b, int32_t c)
 #define mulscale32(a,b) mulscale((a),(b),32)
 
 
-static int32_t dmulscale(int32_t a, int32_t b, int32_t c, int32_t d, int32_t e)
+static int32_t dmulscale(int32_t a, int32_t b, int32_t c, int32_t d, uint_fast8_t e)
 {
 	return (((int64_t)a * b) + ((int64_t)c * d)) >> e;
 }
@@ -124,7 +124,7 @@ static int32_t dmulscale(int32_t a, int32_t b, int32_t c, int32_t d, int32_t e)
 #define dmulscale32(a,b,c,d) dmulscale((a),(b),(c),(d),32)
 
 
-static int32_t divscale(int32_t a, int32_t b, int32_t c)
+static int32_t divscale(int32_t a, int32_t b, uint_fast8_t c)
 {
 	return ((int64_t)a << c) / b;
 }
