@@ -175,8 +175,6 @@ extern int32_t globalorientation;
 
 extern int32_t ylookup[YDIM+1];
 
-extern int32_t transarea;
-
 extern spritetype __far* tspriteptr[MAXSPRITESONSCREEN];
 extern int32_t __far spritesx[MAXSPRITESONSCREEN];
 extern int32_t __far spritesy[MAXSPRITESONSCREEN+1];

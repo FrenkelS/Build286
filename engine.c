@@ -56,8 +56,6 @@ int16_t pskybits;
 int16_t __far headspritesect[MAXSECTORS+1];
 int16_t __far nextspritesect[MAXSPRITES];
 
-int32_t transarea = 0;
-
 int32_t __far xb1[MAXWALLSB];
 int32_t __far yb1[MAXWALLSB];
 int32_t __far xb2[MAXWALLSB];
@@ -234,8 +232,6 @@ static void swaplong(void __far* a, void __far* b)
 
 #define MAXPERMS 512
 
-
-static int32_t beforedrawrooms = 1;
 
 static int32_t oxdimen = -1, oviewingrange = -1, oxyaspect = -1;
 
@@ -1911,8 +1907,6 @@ void drawrooms(int32_t daposx, int32_t daposy, int32_t daposz,
 	int16_t __far* shortptr1;
 	int16_t __far* shortptr2;
 
-	beforedrawrooms = 0;
-
 	globalposx = daposx; globalposy = daposy; globalposz = daposz;
 	globalang = (daang&2047);
 
@@ -2387,10 +2381,8 @@ static void dorotatesprite(int32_t sx, int32_t sy, int32_t z, int16_t a, int16_t
 				a_mspritevline(bx & 65535, by & 65535, y2 - y1 + 1, (bx >> 16) * ysiz + (by >> 16) + bufplc, p, palookupoffs);
 		}
 		else
-		{
 			a_tspritevline(bx & 65535, by & 65535, y2 - y1 + 1, (bx >> 16) * ysiz + (by >> 16) + bufplc, p, palookupoffs);
-			transarea += (y2-y1);
-		}
+
 		faketimerhandler();
 	}
 
@@ -2403,8 +2395,6 @@ void nextpage(void)
 	_fmemcpy(videomemory, _s_screen, (size_t)((int32_t)XDIM * YDIM));
 
 	faketimerhandler();
-
-	beforedrawrooms = 1;
 }
 
 

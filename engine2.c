@@ -752,10 +752,7 @@ static void ceilspritehline(int32_t x2, int32_t y, uint8_t __far* globalbufplc)
 	if ((globalorientation&2) == 0)
 		a_mhline(globalbufplc,palookupoffs,bx,(x2-x1)<<16,by,ylookup[y]+x1+_s_screen);
 	else
-	{
 		a_thline(globalbufplc,palookupoffs,bx,(x2-x1)<<16,by,ylookup[y]+x1+_s_screen);
-		transarea += (x2-x1);
-	}
 }
 
 
@@ -961,8 +958,6 @@ static void transmaskvline(int32_t x, int16_t globalpicnum, uint8_t __far* bufpl
 	p = ylookup[y1v]+x+_s_screen;
 
 	a_tvlineasm1(vinc,palookupoffs,y2v-y1v,vplc,bufplc,p);
-
-	transarea += y2v-y1v;
 }
 
 
