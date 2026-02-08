@@ -172,7 +172,7 @@ extern int32_t globvis;
 
 extern int32_t globalorientation;
 
-extern int32_t ylookup[YDIM+1];
+extern uint_fast16_t ylookup[YDIM+1];
 
 extern spritetype __far* tspriteptr[MAXSPRITESONSCREEN];
 extern int32_t __far spritesx[MAXSPRITESONSCREEN];

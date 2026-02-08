@@ -42,7 +42,7 @@ int32_t _a_glogx, _a_glogy;
 int32_t spritesortcnt;
 spritetype __far tsprite[MAXSPRITESONSCREEN];
 
-int32_t ylookup[YDIM+1];
+uint_fast16_t ylookup[YDIM+1];
 int32_t yxaspect, viewingrange;
 
 volatile int32_t totalclock;

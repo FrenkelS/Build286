@@ -55,7 +55,7 @@ static void clearallviews(void)
 void setgamemode(void)
 {
 	size_t i;
-	int32_t j;
+	uint_fast16_t j;
 
 	setvmode(0x13);
 	_s_screen = Z_MallocStatic((size_t)((int32_t)XDIM * YDIM));
