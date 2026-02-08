@@ -233,7 +233,7 @@ static void swaplong(void __far* a, void __far* b)
 #define MAXPERMS 512
 
 
-static int32_t oxdimen = -1, oviewingrange = -1, oxyaspect = -1;
+int32_t oxdimen = -1, oviewingrange = -1, oxyaspect = -1;
 
 static uint8_t tempbuf[MAXWALLS];
 
@@ -257,7 +257,7 @@ static int16_t uplc[XDIM], dplc[XDIM];
 
 static int32_t swplc[XDIM], lplc[XDIM];
 
-static int32_t xdimenrecip;
+int32_t xdimenrecip;
 
 static int32_t horizlookup2[YDIM * 4];
 
@@ -2002,61 +2002,6 @@ void setvmode(int32_t a)
 }
 
 
-static void setview(void)
-{
-	int32_t i;
-
-	xdimenrecip = divscale32(1L,XDIM);
-
-	setaspect(65536L, divscale16((int32_t)YDIM * XDIM, (int32_t)XDIM * YDIM));
-
-	for(i=0;i<=XDIM-1;i++)
-	{
-		startumost[i] = 0;
-		startdmost[i] = YDIM;
-	}
-}
-
-
-static void clearallviews(int32_t dacol)
-{
-	dacol += (dacol<<8); dacol += (dacol<<16);
-
-	_fmemset(_s_screen, 0, (size_t)((int32_t)XDIM * YDIM));
-	faketimerhandler();
-}
-
-
-void setgamemode(void)
-{
-	int32_t i, j;
-
-	setvmode(0x13);
-	_s_screen = Z_MallocStatic((size_t)((int32_t)XDIM * YDIM));
-	videomemory = kMK_FP(0xa000, 0 + __djgpp_conventional_base);
-
-		//Force drawrooms to call dosetaspect & recalculate stuff
-	oxyaspect = oxdimen = oviewingrange = -1;
-
-	j = 0;
-	for(i=0;i<=YDIM;i++)
-	{
-		ylookup[i] = j;
-		j += XDIM;
-	}
-
-	setview();
-	clearallviews(0L);
-	setPalette();
-
-	if (searchx < 0)
-	{
-		searchx = (XDIM>>1);
-		searchy = (YDIM>>1);
-	}
-}
-
-
 void initengine(void)
 {
 	int32_t i;
@@ -2387,14 +2332,6 @@ static void dorotatesprite(int32_t sx, int32_t sy, int32_t z, int16_t a, int16_t
 	}
 
 	Z_ChangeTagToCache(bufplc);
-}
-
-
-void nextpage(void)
-{
-	_fmemcpy(videomemory, _s_screen, (size_t)((int32_t)XDIM * YDIM));
-
-	faketimerhandler();
 }
 
 

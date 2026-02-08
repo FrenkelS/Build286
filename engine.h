@@ -235,12 +235,14 @@ extern int32_t globalhisibility;
 
 extern int32_t viewingrangerecip;
 
+extern int32_t oxdimen, oviewingrange, oxyaspect;
+
+extern int32_t xdimenrecip;
+
 
 void drawrooms(int32_t daposx, int32_t daposy, int32_t daposz, int16_t daang, int16_t dahoriz, int16_t dacursectnum);
 void setvmode(int32_t a);
-void setgamemode(void);
 void initengine(void);
-void nextpage(void);
 void drawmasks(void);
 void initspritelists(void);
 void insertspritesect(int16_t sectnum);
