@@ -1986,7 +1986,7 @@ void drawrooms(int32_t daposx, int32_t daposy, int32_t daposz,
 }
 
 
-void setvmode(int32_t a)
+void setvmode(int16_t a)
 {
 	union REGS regs;
 	regs.w.ax = a;

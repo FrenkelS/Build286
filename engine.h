@@ -240,7 +240,7 @@ extern int32_t xdimenrecip;
 
 
 void drawrooms(int32_t daposx, int32_t daposy, int32_t daposz, int16_t daang, int16_t dahoriz, int16_t dacursectnum);
-void setvmode(int32_t a);
+void setvmode(int16_t a);
 void initengine(void);
 void drawmasks(void);
 void initspritelists(void);
@@ -250,7 +250,7 @@ void clipmove(int32_t *x, int32_t *y, int32_t *z, int16_t *sectnum, int32_t xvec
 void updatesector(int32_t x, int32_t y, int16_t *sectnum);
 void getzrange(int32_t x, int32_t y, int32_t z, int16_t sectnum, int32_t *ceilz, int32_t *florz, int32_t walldist, uint32_t cliptype);
 void setaspect(int32_t daxrange, int32_t daaspect);
-void rotatesprite (int32_t sx, int32_t sy, int32_t z, int16_t a, int16_t picnum, int8_t dashade, uint8_t dapalnum, uint8_t dastat, int32_t cx1, int32_t cy1, int32_t cx2, int32_t cy2);
+void rotatesprite(int32_t sx, int32_t sy, int32_t z, int16_t a, int16_t picnum, int8_t dashade, uint8_t dapalnum, uint8_t dastat, int32_t cx1, int32_t cy1, int32_t cx2, int32_t cy2);
 
 int32_t getceilzofslope(int16_t sectnum, int32_t dax, int32_t day);
 int32_t getflorzofslope(int16_t sectnum, int32_t dax, int32_t day);
