@@ -127,7 +127,7 @@ typedef uint8_t assertSizeSpritetype[sizeof(spritetype) == 44 ? 1 : -1];
 #pragma pack(pop)
 
 
-extern int32_t spritesortcnt;
+extern int16_t spritesortcnt;
 extern spritetype __far tsprite[MAXSPRITESONSCREEN];
 
 extern int32_t yxaspect, viewingrange;
