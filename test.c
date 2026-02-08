@@ -42,7 +42,6 @@ static _go32_dpmi_seginfo oldtimerhandler, newtimerhandler;
 #else
 static void __interrupt __far (*oldtimerhandler)(void);
 #endif
-static void __interrupt __far timerhandler(void);
 static uint8_t isTimerSet = 0;
 
 
@@ -51,7 +50,6 @@ static _go32_dpmi_seginfo oldkeyhandler, newkeyhandler;
 #else
 static void __interrupt __far (*oldkeyhandler)(void);
 #endif
-static void __interrupt __far keyhandler(void);
 static volatile int8_t keystatus[256];
 static uint8_t isKeyboardIsrSet = 0;
 
@@ -76,12 +74,6 @@ static uint8_t buildkeys[NUMKEYS] =
 };
 
 
-static void editinput(void);
-static void inittimer(void);
-static void uninittimer(void);
-static void initkeys(void);
-static void uninitkeys(void);
-static void keytimerstuff(void);
 _Noreturn static void I_Quit(void);
 
 
@@ -109,6 +101,227 @@ int M_CheckParm(char *check)
 			return i;
 
 	return 0;
+}
+
+
+static void editinput(void)
+{
+	static size_t brightness = 0;
+	static int32_t hvel;
+	int32_t doubvel;
+	int32_t goalz, xvect, yvect, hiz, loz;
+
+	if (keystatus[0x57])  // F11 - brightness
+	{
+		keystatus[0x57] = 0;
+
+		brightness = (brightness + 1) & 15;
+
+		setBrightness(brightness);
+		setPalette();
+	}
+
+	if (keystatus[0x3b]) posx--; // F1 - Walk slowly
+	if (keystatus[0x3c]) posx++; // F2
+	if (keystatus[0x3d]) posy--; // F3 - Strafe left and right slowly
+	if (keystatus[0x3e]) posy++; // F4
+	if (keystatus[0x43]) ang--; // F9 - Walk slowly
+	if (keystatus[0x44]) ang++; // F10
+
+	if (angvel != 0)          //ang += angvel * constant
+	{                         //ENGINE calculates angvel for you
+		doubvel = synctics;
+		if (keystatus[buildkeys[4]])  // Left Shift makes turn velocity 50% faster
+			doubvel += (synctics >> 1);
+		ang += ((angvel * doubvel) >> 4);
+		ang = (ang + 2048) & 2047;
+	}
+
+	if ((vel | svel) != 0)
+	{
+		doubvel = synctics;
+		if (keystatus[buildkeys[4]])     // Left Shift doubles forward velocity
+			doubvel += synctics;
+		xvect = 0;
+		yvect = 0;
+		if (vel != 0)
+		{
+			xvect += ((vel * doubvel * (int32_t)sintable[(ang + 2560) & 2047]) >> 3);
+			yvect += ((vel * doubvel * (int32_t)sintable[(ang + 2048) & 2047]) >> 3);
+		}
+		if (svel != 0)
+		{
+			xvect += ((svel * doubvel * (int32_t)sintable[(ang + 2048) & 2047]) >> 3);
+			yvect += ((svel * doubvel * (int32_t)sintable[(ang + 1536) & 2047]) >> 3);
+		}
+		clipmove(&posx, &posy, &posz, &cursectnum, xvect, yvect, 128L, 4L << 8, 4L << 8, CLIPMASK0);
+	}
+	getzrange(posx, posy, posz, cursectnum, &hiz, &loz, 128L, CLIPMASK0);
+
+	goalz = loz - (32 << 8);   //playerheight pixels above floor
+	if (goalz < hiz + (16 << 8))   //ceiling&floor too close
+		goalz = ((loz + hiz) >> 1);
+
+	if (keystatus[buildkeys[8]])                            // A - stand high
+	{
+		if (keystatus[0x1d]) // Left Ctrl - Look down
+			horiz = max(-100, horiz - ((keystatus[buildkeys[4]] + 1) << 2)); // Left Shift
+		else
+		{
+			goalz -= (16 << 8);
+			if (keystatus[buildkeys[4]])    // Left Shift
+				goalz -= (24 << 8);
+		}
+	}
+
+	if (keystatus[buildkeys[9]])                            // Z - stand low
+	{
+		if (keystatus[0x1d]) // Left Ctrl - Look up
+			horiz = min(300, horiz + ((keystatus[buildkeys[4]] + 1) << 2));
+		else
+		{
+			goalz += (12 << 8);
+			if (keystatus[buildkeys[4]])    // Left Shift
+				goalz += ( 12 << 8);
+		}
+	}
+
+	if (goalz != posz)
+	{
+		if (posz < goalz) hvel += 32;
+		if (posz > goalz) hvel = (goalz - posz) >> 3;
+
+		posz += hvel;
+		if (posz > loz - (4 << 8)) posz = loz - (4 << 8), hvel = 0;
+		if (posz < hiz + (4 << 8)) posz = hiz + (4 << 8), hvel = 0;
+	}
+}
+
+
+static void __interrupt __far keyhandler(void)
+{
+	static volatile uint8_t readch, extended;
+	uint8_t keytemp;
+	uint8_t oldreadch;
+
+	oldreadch = readch;
+	readch  = inp(0x60);
+	keytemp = inp(0x61);
+	outp(0x61, keytemp | 128);
+	outp(0x61, keytemp & 127);
+	outp(0x20, 0x20);
+
+	if ((readch | 1) == 0xe1)
+	{
+		extended = 128;
+		return;
+	}
+
+	if (oldreadch != readch)
+	{
+		if ((readch & 128) == 0)
+		{
+			keytemp = readch + extended;
+			keystatus[keytemp] = 1;
+		}
+		else
+		{
+			keytemp = (readch & 127) + extended;
+			keystatus[keytemp] = 0;
+		}
+	}
+	extended = 0;
+}
+
+
+static void initkeys(void)
+{
+	_disable();
+	replaceInterrupt(oldkeyhandler, newkeyhandler, 0x9, keyhandler);
+	_enable();
+
+	isKeyboardIsrSet = 1;
+}
+
+
+static void uninitkeys(void)
+{
+	int16_t __far* ptr;
+
+	if (isKeyboardIsrSet == 0)
+		return;
+
+	restoreInterrupt(0x9, oldkeyhandler, newkeyhandler);
+
+		//Turn off shifts to prevent stucks with quitting
+	ptr = kMK_FP(0x40, 0x17 + __djgpp_conventional_base);
+	*ptr &= ~0x030f;
+}
+
+
+static void keytimerstuff(void)
+{
+	if (keystatus[buildkeys[5]] == 0) // Right Ctrl
+	{
+		if (keystatus[buildkeys[2]]) angvel = max(angvel - 16, -128); // Left - Turn
+		if (keystatus[buildkeys[3]]) angvel = min(angvel + 16,  127); // Right
+	}
+	else
+	{
+		if (keystatus[buildkeys[2]]) svel = min(svel + 8,  127); // Left - Strafe
+		if (keystatus[buildkeys[3]]) svel = max(svel - 8, -128); // Right
+	}
+
+	if (keystatus[buildkeys[0]])   vel = min( vel + 8,  127); // Up - Move
+	if (keystatus[buildkeys[1]])   vel = max( vel - 8, -128); // Down
+
+	if (keystatus[buildkeys[12]]) svel = min(svel + 8,  127); // < - Strafe
+	if (keystatus[buildkeys[13]]) svel = max(svel - 8, -128); // >
+
+	if (angvel < 0) angvel = min(angvel + 12, 0);
+	if (angvel > 0) angvel = max(angvel - 12, 0);
+	if (  svel < 0)   svel = min(  svel + 2, 0);
+	if (  svel > 0)   svel = max(  svel - 2, 0);
+	if (   vel < 0)    vel = min(   vel + 2, 0);
+	if (   vel > 0)    vel = max(   vel - 2, 0);
+}
+
+
+static void __interrupt __far timerhandler(void)
+{
+	totalclock++;
+	keytimerstuff();
+	outp(0x20, 0x20);
+}
+
+
+static void inittimer(void)
+{
+	outp(0x43, 0x34);
+	outp(0x40, (1193181 / 120) & 255);
+	outp(0x40, (1193181 / 120) >> 8);
+
+	_disable();
+	replaceInterrupt(oldtimerhandler, newtimerhandler, 0x8, timerhandler);
+	_enable();
+
+	isTimerSet = 1;
+}
+
+
+static void uninittimer(void)
+{
+	if (isTimerSet == 0)
+		return;
+
+	//18.2 times/sec
+	outp(0x43,0x34);
+	outp(0x40,0);
+	outp(0x40,0);
+
+	_disable();
+	restoreInterrupt(0x8, oldtimerhandler, newtimerhandler);
+	_enable();
 }
 
 
@@ -223,225 +436,6 @@ int main(int argc, const char * const *argv)
 
 	I_Quit();
 	return 0;
-}
-
-
-static void editinput(void)
-{
-	static size_t brightness = 0;
-	static int32_t hvel;
-	int32_t doubvel;
-	int32_t goalz, xvect, yvect, hiz, loz;
-
-	if (keystatus[0x57])  // F11 - brightness
-	{
-		keystatus[0x57] = 0;
-
-		brightness = (brightness + 1) & 15;
-
-		setBrightness(brightness);
-		setPalette();
-	}
-
-	if (keystatus[0x3b]) posx--; // F1 - Walk slowly
-	if (keystatus[0x3c]) posx++; // F2
-	if (keystatus[0x3d]) posy--; // F3 - Strafe left and right slowly
-	if (keystatus[0x3e]) posy++; // F4
-	if (keystatus[0x43]) ang--; // F9 - Walk slowly
-	if (keystatus[0x44]) ang++; // F10
-
-	if (angvel != 0)          //ang += angvel * constant
-	{                         //ENGINE calculates angvel for you
-		doubvel = synctics;
-		if (keystatus[buildkeys[4]])  // Left Shift makes turn velocity 50% faster
-			doubvel += (synctics >> 1);
-		ang += ((angvel * doubvel) >> 4);
-		ang = (ang + 2048) & 2047;
-	}
-
-	if ((vel | svel) != 0)
-	{
-		doubvel = synctics;
-		if (keystatus[buildkeys[4]])     // Left Shift doubles forward velocity
-			doubvel += synctics;
-		xvect = 0;
-		yvect = 0;
-		if (vel != 0)
-		{
-			xvect += ((vel * doubvel * (int32_t)sintable[(ang + 2560) & 2047]) >> 3);
-			yvect += ((vel * doubvel * (int32_t)sintable[(ang + 2048) & 2047]) >> 3);
-		}
-		if (svel != 0)
-		{
-			xvect += ((svel * doubvel * (int32_t)sintable[(ang + 2048) & 2047]) >> 3);
-			yvect += ((svel * doubvel * (int32_t)sintable[(ang + 1536) & 2047]) >> 3);
-		}
-		clipmove(&posx, &posy, &posz, &cursectnum, xvect, yvect, 128L, 4L << 8, 4L << 8, CLIPMASK0);
-	}
-	getzrange(posx, posy, posz, cursectnum, &hiz, &loz, 128L, CLIPMASK0);
-
-	goalz = loz - (32 << 8);   //playerheight pixels above floor
-	if (goalz < hiz + (16 << 8))   //ceiling&floor too close
-		goalz = ((loz + hiz) >> 1);
-
-	if (keystatus[buildkeys[8]])                            // A - stand high
-	{
-		if (keystatus[0x1d]) // Left Ctrl - Look down
-			horiz = max(-100, horiz - ((keystatus[buildkeys[4]] + 1) << 2)); // Left Shift
-		else
-		{
-			goalz -= (16 << 8);
-			if (keystatus[buildkeys[4]])    // Left Shift
-				goalz -= (24 << 8);
-		}
-	}
-
-	if (keystatus[buildkeys[9]])                            // Z - stand low
-	{
-		if (keystatus[0x1d]) // Left Ctrl - Look up
-			horiz = min(300, horiz + ((keystatus[buildkeys[4]] + 1) << 2));
-		else
-		{
-			goalz += (12 << 8);
-			if (keystatus[buildkeys[4]])    // Left Shift
-				goalz += ( 12 << 8);
-		}
-	}
-
-	if (goalz != posz)
-	{
-		if (posz < goalz) hvel += 32;
-		if (posz > goalz) hvel = (goalz - posz) >> 3;
-
-		posz += hvel;
-		if (posz > loz - (4 << 8)) posz = loz - (4 << 8), hvel = 0;
-		if (posz < hiz + (4 << 8)) posz = hiz + (4 << 8), hvel = 0;
-	}
-}
-
-
-static void inittimer(void)
-{
-	outp(0x43, 0x34);
-	outp(0x40, (1193181 / 120) & 255);
-	outp(0x40, (1193181 / 120) >> 8);
-	_disable();
-	replaceInterrupt(oldtimerhandler, newtimerhandler, 0x8, timerhandler);
-	_enable();
-
-	isTimerSet = 1;
-}
-
-
-static void uninittimer(void)
-{
-	if (isTimerSet == 0)
-		return;
-
-	//18.2 times/sec
-	outp(0x43,0x34);
-	outp(0x40,0);
-	outp(0x40,0);
-	_disable();
-	restoreInterrupt(0x8, oldtimerhandler, newtimerhandler);
-	_enable();
-}
-
-
-static void __interrupt __far timerhandler(void)
-{
-	totalclock++;
-	keytimerstuff();
-	outp(0x20, 0x20);
-}
-
-
-static void initkeys(void)
-{
-	_disable();
-	replaceInterrupt(oldkeyhandler, newkeyhandler, 0x9, keyhandler);
-	_enable();
-
-	isKeyboardIsrSet = 1;
-}
-
-
-static void uninitkeys(void)
-{
-	int16_t __far* ptr;
-
-	if (isKeyboardIsrSet == 0)
-		return;
-
-	restoreInterrupt(0x9, oldkeyhandler, newkeyhandler);
-
-		//Turn off shifts to prevent stucks with quitting
-	ptr = kMK_FP(0x40, 0x17 + __djgpp_conventional_base);
-	*ptr &= ~0x030f;
-}
-
-
-static void __interrupt __far keyhandler(void)
-{
-	static volatile uint8_t readch, extended;
-	uint8_t keytemp;
-	uint8_t oldreadch;
-
-	oldreadch = readch;
-	readch  = inp(0x60);
-	keytemp = inp(0x61);
-	outp(0x61, keytemp | 128);
-	outp(0x61, keytemp & 127);
-	outp(0x20, 0x20);
-
-	if ((readch | 1) == 0xe1)
-	{
-		extended = 128;
-		return;
-	}
-
-	if (oldreadch != readch)
-	{
-		if ((readch & 128) == 0)
-		{
-			keytemp = readch + extended;
-			keystatus[keytemp] = 1;
-		}
-		else
-		{
-			keytemp = (readch & 127) + extended;
-			keystatus[keytemp] = 0;
-		}
-	}
-	extended = 0;
-}
-
-
-static void keytimerstuff(void)
-{
-	if (keystatus[buildkeys[5]] == 0) // Right Ctrl
-	{
-		if (keystatus[buildkeys[2]]) angvel = max(angvel - 16, -128); // Left - Turn
-		if (keystatus[buildkeys[3]]) angvel = min(angvel + 16,  127); // Right
-	}
-	else
-	{
-		if (keystatus[buildkeys[2]]) svel = min(svel + 8,  127); // Left - Strafe
-		if (keystatus[buildkeys[3]]) svel = max(svel - 8, -128); // Right
-	}
-
-	if (keystatus[buildkeys[0]])   vel = min( vel + 8,  127); // Up - Move
-	if (keystatus[buildkeys[1]])   vel = max( vel - 8, -128); // Down
-
-	if (keystatus[buildkeys[12]]) svel = min(svel + 8,  127); // < - Strafe
-	if (keystatus[buildkeys[13]]) svel = max(svel - 8, -128); // >
-
-	if (angvel < 0) angvel = min(angvel + 12, 0);
-	if (angvel > 0) angvel = max(angvel - 12, 0);
-	if (  svel < 0)   svel = min(  svel + 2, 0);
-	if (  svel > 0)   svel = max(  svel - 2, 0);
-	if (   vel < 0)    vel = min(   vel + 2, 0);
-	if (   vel > 0)    vel = max(   vel - 2, 0);
 }
 
 
