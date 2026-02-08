@@ -436,7 +436,7 @@ skipitaddwall:
 }
 
 
-static int32_t wallfront(int32_t l1, int32_t l2)
+static int_fast8_t wallfront(int32_t l1, int32_t l2)
 {
 	walltype __far* wal;
 	int32_t x11, y11, x21, y21, x12, y12, x22, y22, dx, dy, t1, t2;
@@ -449,44 +449,44 @@ static int32_t wallfront(int32_t l1, int32_t l2)
 	dx = x21-x11; dy = y21-y11;
 	t1 = dmulscale2(x12-x11,dy,-dx,y12-y11); //p1(l2) vs. l1
 	t2 = dmulscale2(x22-x11,dy,-dx,y22-y11); //p2(l2) vs. l1
-	if (t1 == 0) { t1 = t2; if (t1 == 0) return(-1); }
+	if (t1 == 0) { t1 = t2; if (t1 == 0) return -1; }
 	if (t2 == 0) t2 = t1;
 	if ((t1^t2) >= 0)
 	{
 		t2 = dmulscale2(globalposx-x11,dy,-dx,globalposy-y11); //pos vs. l1
-		return((t2^t1) >= 0);
+		return (t2 ^ t1) >= 0;
 	}
 
 	dx = x22-x12; dy = y22-y12;
 	t1 = dmulscale2(x11-x12,dy,-dx,y11-y12); //p1(l1) vs. l2
 	t2 = dmulscale2(x21-x12,dy,-dx,y21-y12); //p2(l1) vs. l2
-	if (t1 == 0) { t1 = t2; if (t1 == 0) return(-1); }
+	if (t1 == 0) { t1 = t2; if (t1 == 0) return -1; }
 	if (t2 == 0) t2 = t1;
 	if ((t1^t2) >= 0)
 	{
 		t2 = dmulscale2(globalposx-x12,dy,-dx,globalposy-y12); //pos vs. l2
-		return((t2^t1) < 0);
+		return (t2 ^ t1) < 0;
 	}
-	return(-2);
+	return -2;
 }
 
 
-static int32_t bunchfront(int32_t b1, int32_t b2)
+static int_fast8_t bunchfront(int32_t b1, int32_t b2)
 {
 	int32_t x1b1, x2b1, x1b2, x2b2, b1f, b2f, i;
 
 	b1f = bunchfirst[b1]; x1b1 = xb1[b1f]; x2b2 = xb2[bunchlast[b2]]+1;
-	if (x1b1 >= x2b2) return(-1);
+	if (x1b1 >= x2b2) return -1;
 	b2f = bunchfirst[b2]; x1b2 = xb1[b2f]; x2b1 = xb2[bunchlast[b1]]+1;
-	if (x1b2 >= x2b1) return(-1);
+	if (x1b2 >= x2b1) return -1;
 
 	if (x1b1 >= x1b2)
 	{
 		for(i=b2f;xb2[i]<x1b1;i=p2[i]);
-		return(wallfront(b1f,i));
+		return wallfront(b1f, i);
 	}
 	for(i=b1f;xb2[i]<x1b2;i=p2[i]);
-	return(wallfront(i,b2f));
+	return wallfront(i, b2f);
 }
 
 
@@ -580,7 +580,7 @@ static void a_hlineasm4(int32_t cnt, int32_t paloffs, uint32_t by, uint32_t bx, 
 	_a_gbxinc = asm1;
 	_a_gbyinc = asm2;
 
-	for(;cnt >=0 ; cnt--)
+	for (;cnt >=0; cnt--)
 	{
 		*p = palptr[_a_gbuf[((bx >> (32 - _a_glogx)) << _a_glogy) + (by >> (32 - _a_glogy))]];
 		bx -= _a_gbxinc;
@@ -594,7 +594,10 @@ static void hline(int32_t xr, int32_t yp, uint8_t __far* _a_gbuf)
 {
 	int32_t xl, r;
 
-	xl = lastx[yp]; if (xl > xr) return;
+	xl = lastx[yp];
+	if (xl > xr)
+		return;
+
 	r = horizlookup2[yp-globalhoriz+((YDIM*4)>>1)];
 	asm1 = globalx1*r;
 	asm2 = globaly2*r;
@@ -892,8 +895,8 @@ static void a_vlineasm1flat(int32_t cnt, uint8_t globalpicnumchar, uint8_t __far
 {
 	for(; cnt >= 0; cnt--)
 	{
-		*p = globalpicnumchar;
-		p += XDIM;
+		*p  = globalpicnumchar;
+		 p += XDIM;
 	}
 }
 
@@ -901,10 +904,10 @@ static void a_vlineasm1flat(int32_t cnt, uint8_t globalpicnumchar, uint8_t __far
 	//Wall,face sprite/wall sprite vertical line function
 static void a_vlineasm1(int32_t vinc, uint8_t __far* paloffs, int32_t cnt, uint32_t vplc, uint8_t __far* bufplc, uint8_t __far* p)
 {
-	for(;cnt>=0;cnt--)
+	for (; cnt >= 0; cnt--)
 	{
-		*p = paloffs[bufplc[vplc>>_a_glogy]];
-		p += XDIM;
+		*p    = paloffs[bufplc[vplc >> _a_glogy]];
+		 p   += XDIM;
 		vplc += vinc;
 	}
 }
@@ -1021,16 +1024,19 @@ static uint8_t wallmost(int16_t __far* mostbuf, int32_t w, int32_t sectnum, uint
 	if (dastat == 0)
 	{
 		z = sector[sectnum].ceilingz-globalposz;
-		if ((sector[sectnum].ceilingstat&2) == 0) return(owallmost(mostbuf,w,z));
+		if ((sector[sectnum].ceilingstat & 2) == 0)
+			return owallmost(mostbuf, w, z);
 	}
 	else
 	{
 		z = sector[sectnum].floorz-globalposz;
-		if ((sector[sectnum].floorstat&2) == 0) return(owallmost(mostbuf,w,z));
+		if ((sector[sectnum].floorstat & 2) == 0)
+			return owallmost(mostbuf, w, z);
 	}
 
 	i = thewall[w];
-	if (i == sector[sectnum].wallptr) return(owallmost(mostbuf,w,z));
+	if (i == sector[sectnum].wallptr)
+		return owallmost(mostbuf, w, z);
 
 	x1 = wall[i].x; x2 = wall[wall[i].point2].x-x1;
 	y1 = wall[i].y; y2 = wall[wall[i].point2].y-y1;
@@ -1087,19 +1093,19 @@ static uint8_t wallmost(int16_t __far* mostbuf, int32_t w, int32_t sectnum, uint
 	iy1 = yb1[w]; iy2 = yb2[w];
 	oz1 = z1; oz2 = z2;
 
-	if ((bad&3) == 3)
+	if ((bad & 3) == 3)
 	{
 		_fmemset(&mostbuf[ix1], 0, (ix2 - ix1 + 1) * sizeof(mostbuf[0]));
-		return(bad);
+		return bad;
 	}
 
-	if ((bad&12) == 12)
+	if ((bad & 12) == 12)
 	{
 		clearshortbuf(&mostbuf[ix1],YDIM,ix2-ix1+1);
-		return(bad);
+		return bad;
 	}
 
-	if (bad&3)
+	if (bad & 3)
 	{
 			//inty = intz / (globaluclip>>16)
 		t = divscale30(oz1-s1,s2-s1+oz1-oz2);
@@ -1151,12 +1157,12 @@ static uint8_t wallmost(int16_t __far* mostbuf, int32_t w, int32_t sectnum, uint
 	yinc = ((scale(z2,xdimenscale,iy2)<<4)-y) / (ix2-ix1+1);
 	qinterpolatedown16short(&mostbuf[ix1],ix2-ix1+1,y+(globalhoriz<<16),yinc);
 
-	if (mostbuf[ix1] < 0) mostbuf[ix1] = 0;
+	if (mostbuf[ix1] < 0)    mostbuf[ix1] = 0;
 	if (mostbuf[ix1] > YDIM) mostbuf[ix1] = YDIM;
-	if (mostbuf[ix2] < 0) mostbuf[ix2] = 0;
+	if (mostbuf[ix2] < 0)    mostbuf[ix2] = 0;
 	if (mostbuf[ix2] > YDIM) mostbuf[ix2] = YDIM;
 
-	return(bad);
+	return bad;
 }
 
 
@@ -1172,15 +1178,15 @@ static void a_slopevlin(uint8_t __far* p, int32_t bz, int32_t *slopaloffs, int32
 	int32_t *slopalptr, i, bzinc;
 	uint32_t u, v;
 
-	bzinc = (asm1>>3);
+	bzinc = asm1 >> 3;
 	slopalptr = slopaloffs;
-	for(;cnt>0;cnt--)
+	for(; cnt > 0; cnt--)
 	{
-		i = krecip(bz>>6);
+		i = krecip(bz >> 6);
 		bz += bzinc;
-		u = bx+globalx3*i;
-		v = by+globaly3*i;
-		*p = *(uint8_t __far*)(slopalptr[0]+_a_gbuf[((u>>(32-_a_glogx))<<_a_glogy)+(v>>(32-_a_glogy))]);
+		u = bx + globalx3 * i;
+		v = by + globaly3 * i;
+		*p = *(uint8_t __far*)(slopalptr[0] + _a_gbuf[((u >> (32 - _a_glogx)) << _a_glogy) + (v >> (32 - _a_glogy))]);
 		slopalptr--;
 		p += _a_gpinc;
 	}
@@ -1188,7 +1194,7 @@ static void a_slopevlin(uint8_t __far* p, int32_t bz, int32_t *slopaloffs, int32
 
 
 #define BITSOFPRECISION 3  //Don't forget to change this in A.ASM also!
-static void grouscan (int32_t dax1, int32_t dax2, int32_t sectnum, uint8_t dastat)
+static void grouscan(int32_t dax1, int32_t dax2, int32_t sectnum, uint8_t dastat)
 {
 	int32_t i, j, l, x, y, dx, dy, wx, wy, y1, y2, daz, bz;
 	int32_t daslope, dasqr;
@@ -1895,7 +1901,8 @@ void drawrooms(int32_t daposx, int32_t daposy, int32_t daposz,
 			 int16_t daang, int16_t dahoriz, int16_t dacursectnum)
 {
 	static uint8_t tempbuf[MAXWALLS];
-	int32_t i, j, cz, fz, closest;
+	int32_t i, cz, fz, closest;
+	int_fast8_t j;
 	int16_t __far* shortptr1;
 	int16_t __far* shortptr2;
 
@@ -2029,9 +2036,10 @@ void initengine(void)
 
 
 	//Assume npoints=4 with polygon on &rx1,&ry1
-static int32_t clippoly4(int32_t cx1, int32_t cy1, int32_t cx2, int32_t cy2)
+static int_fast16_t clippoly4(int32_t cx1, int32_t cy1, int32_t cx2, int32_t cy2)
 {
-	int32_t n, nn, z, zz, x, x1, x2, y, y1, y2, t;
+	int_fast16_t n, nn, z, zz;
+	int32_t x, x1, x2, y, y1, y2, t;
 
 	nn = 0; z = 0;
 	do
@@ -2054,7 +2062,9 @@ static int32_t clippoly4(int32_t cx1, int32_t cy1, int32_t cx2, int32_t cy2)
 
 		z = zz;
 	} while (z != 0);
-	if (nn < 3) return(0);
+
+	if (nn < 3)
+		return 0;
 
 	n = 0; z = 0;
 	do
@@ -2077,19 +2087,20 @@ static int32_t clippoly4(int32_t cx1, int32_t cy1, int32_t cx2, int32_t cy2)
 
 		z = zz;
 	} while (z != 0);
-	return(n);
+
+	return n;
 }
 
 
 	//Rotatesprite vertical line function
 static void a_spritevline(int32_t bx, int32_t by, int32_t cnt, uint8_t __far* bufplc, uint8_t __far* p, uint8_t __far* paloffs)
 {
-	for(;cnt>1;cnt--)
+	for (; cnt > 1; cnt--)
 	{
 		*p  = paloffs[bufplc[(bx >> 16) * _a_glogy + (by >> 16)]];
+		 p += XDIM;
 		bx += _a_gbxinc;
 		by += _a_gbyinc;
-		p  += XDIM;
 	}
 }
 
@@ -2099,14 +2110,15 @@ static void a_mspritevline(int32_t bx, int32_t by, int32_t cnt, uint8_t __far* b
 {
 	uint8_t ch;
 
-	for(;cnt>1;cnt--)
+	for (; cnt > 1; cnt--)
 	{
-		ch = bufplc[(bx>>16)*_a_glogy+(by>>16)];
+		ch = bufplc[(bx >> 16) * _a_glogy + (by >> 16)];
 		if (ch != 255)
 			*p = paloffs[ch];
+
+		p  += XDIM;
 		bx += _a_gbxinc;
 		by += _a_gbyinc;
-		p  += XDIM;
 	}
 }
 
@@ -2118,26 +2130,28 @@ static void a_tspritevline(int32_t bx, int32_t by, int32_t cnt, uint8_t __far* b
 
 	if (_a_transmode)
 	{
-		for(;cnt>1;cnt--)
+		for (; cnt > 1; cnt--)
 		{
-			ch = bufplc[(bx>>16)*_a_glogy+(by>>16)];
+			ch = bufplc[(bx >> 16) * _a_glogy + (by >> 16)];
 			if (ch != 255)
 				*p = translucfunc(*p, paloffs[ch]);
+
+			p  += XDIM;
 			bx += _a_gbxinc;
 			by += _a_gbyinc;
-			p  += XDIM;
 		}
 	}
 	else
 	{
-		for(;cnt>1;cnt--)
+		for (; cnt > 1; cnt--)
 		{
-			ch = bufplc[(bx>>16)*_a_glogy+(by>>16)];
+			ch = bufplc[(bx >> 16) * _a_glogy + (by >> 16)];
 			if (ch != 255)
 				*p = translucfunc(paloffs[ch], *p);
+
+			p  += XDIM;
 			bx += _a_gbxinc;
 			by += _a_gbyinc;
-			p  += XDIM;
 		}
 	}
 }
@@ -2150,7 +2164,8 @@ static void dorotatesprite(int32_t sx, int32_t sy, int32_t z, int16_t a, int16_t
 	uint8_t __far* p;
 	uint8_t __far* bufplc;
 	uint8_t __far* palookupoffs;
-	int32_t xsiz, ysiz, xoff, yoff, npoints, yplc, yinc, lx, rx;
+	int32_t xsiz, ysiz, xoff, yoff, yplc, yinc, lx, rx;
+	int_fast16_t npoints;
 	int32_t xv, yv, xv2, yv2;
 
 	xsiz = tilesizx[picnum]; ysiz = tilesizy[picnum];
