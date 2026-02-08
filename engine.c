@@ -46,7 +46,6 @@ int32_t ylookup[YDIM+1];
 int32_t yxaspect, viewingrange;
 
 volatile int32_t totalclock;
-int32_t numframes;
 
 int16_t __far startumost[XDIM];
 int16_t __far startdmost[XDIM];
@@ -2406,7 +2405,6 @@ void nextpage(void)
 	faketimerhandler();
 
 	beforedrawrooms = 1;
-	numframes++;
 }
 
 

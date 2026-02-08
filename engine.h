@@ -133,7 +133,6 @@ extern spritetype __far tsprite[MAXSPRITESONSCREEN];
 
 extern int32_t yxaspect, viewingrange;
 
-extern int32_t numframes;
 extern volatile int32_t totalclock;
 
 extern int16_t __far pskyoff[MAXPSKYTILES];

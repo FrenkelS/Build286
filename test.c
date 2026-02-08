@@ -60,7 +60,8 @@ static int16_t vel, svel, angvel;
 static int32_t posx, posy, posz;
 static int16_t horiz = 100, ang, cursectnum;
 
-static int32_t synctics = 0;
+static int32_t numframes = 0;
+static int32_t synctics  = 0;
 
 
 #define NUMOPTIONS 8
@@ -209,6 +210,7 @@ int main(int argc, const char * const *argv)
 		if (keystatus[0x5]) rotatesprite((int32_t)XDIM << 15, (int32_t)YDIM << 15, 65536L, daang, 75, 0, 0, 1 + 8 + 32, 0L, 0L, XDIM - 1L, YDIM - 1L); // 4
 
 		nextpage();
+		numframes++;
 #if defined RANGECHECK
 		if ((numframes & 31) == 31)
 			Z_CheckHeap();
