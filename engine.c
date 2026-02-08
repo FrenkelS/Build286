@@ -120,12 +120,10 @@ int32_t lastx[YDIM];
 int16_t __far clipsectorlist[MAXCLIPNUM];
 int16_t clipsectnum;
 
-
 int16_t editstatus = 0;
 int16_t searchit;
 int32_t searchx = -1, searchy;                          //search input
 int16_t searchsector, searchwall, searchstat;     //search output
-
 
 static int32_t _a_gbxinc, _a_gbyinc, _a_gpinc;
 static uint8_t __far* _a_ghlinepal;
@@ -140,6 +138,49 @@ static int16_t __far prevspritestat[MAXSPRITES];
 static int16_t __far nextspritestat[MAXSPRITES];
 
 static uint8_t __far gotsector[(MAXSECTORS+7)>>3];
+
+int32_t oxdimen = -1, oviewingrange = -1, oxyaspect = -1;
+
+static int32_t slopalookup[2048];
+
+static int16_t radarang2[XDIM];
+static const uint8_t pow2char[8] = {1,2,4,8,16,32,64,128};
+
+static int16_t p2[MAXWALLSB], thesector[MAXWALLSB];
+
+static int16_t bunchfirst[MAXWALLSB], bunchlast[MAXWALLSB];
+
+static int16_t smostcnt;
+
+static int16_t maskwall[MAXWALLSB], maskwallcnt;
+
+static int32_t spritesz[MAXSPRITESONSCREEN];
+
+static int16_t umost[XDIM], dmost[XDIM];
+static int16_t uplc[XDIM], dplc[XDIM];
+
+static int32_t swplc[XDIM], lplc[XDIM];
+
+int32_t xdimenrecip;
+
+static int32_t horizlookup2[YDIM * 4];
+
+static int16_t globalcursectnum;
+
+static uint8_t __far* globalpalwritten;
+
+static int32_t globalpisibility, globalcisibility;
+static uint8_t globparaceilclip, globparaflorclip;
+
+static uint8_t globalxshift, globalyshift;
+
+static int32_t globalzx;
+static int32_t globalx3, globaly3;
+static int32_t globalx, globaly, globalz;
+
+static int16_t sectorborder[256], sectorbordercnt;
+
+static int16_t numscans, numhits, numbunches;
 
 
 static int32_t scale(int32_t a, int32_t b, int32_t c)
@@ -230,56 +271,6 @@ static void swaplong(void __far* a, void __far* b)
 }
 
 
-#define MAXPERMS 512
-
-
-int32_t oxdimen = -1, oviewingrange = -1, oxyaspect = -1;
-
-static uint8_t tempbuf[MAXWALLS];
-
-static int32_t slopalookup[2048];
-
-static int16_t radarang2[XDIM];
-static const uint8_t pow2char[8] = {1,2,4,8,16,32,64,128};
-
-static int16_t p2[MAXWALLSB], thesector[MAXWALLSB];
-
-static int16_t bunchfirst[MAXWALLSB], bunchlast[MAXWALLSB];
-
-static int16_t smostcnt;
-
-static int16_t maskwall[MAXWALLSB], maskwallcnt;
-
-static int32_t spritesz[MAXSPRITESONSCREEN];
-
-static int16_t umost[XDIM], dmost[XDIM];
-static int16_t uplc[XDIM], dplc[XDIM];
-
-static int32_t swplc[XDIM], lplc[XDIM];
-
-int32_t xdimenrecip;
-
-static int32_t horizlookup2[YDIM * 4];
-
-static int16_t globalcursectnum;
-
-static uint8_t __far* globalpalwritten;
-
-static int32_t globalpisibility, globalcisibility;
-static uint8_t globparaceilclip, globparaflorclip;
-
-static uint8_t globalxshift, globalyshift;
-
-static int32_t globalzx;
-static int32_t globalx3, globaly3;
-static int32_t globalx, globaly, globalz;
-
-static int16_t sectorborder[256], sectorbordercnt;
-static int16_t pointhighlight, linehighlight, highlightcnt;
-
-static int16_t numscans, numhits, numbunches;
-
-
 	//Simple integer square root  Ex: msqrtasm(81L) = 9L;
 static uint32_t msqrtasm(uint32_t c)
 {
@@ -292,7 +283,7 @@ static uint32_t msqrtasm(uint32_t c)
 		if (c >= a)
 		{
 			c -= a;
-			a += b*4;
+			a += b * 4;
 		}
 
 		a -= b;
@@ -1370,7 +1361,7 @@ static void grouscan (int32_t dax1, int32_t dax2, int32_t sectnum, uint8_t dasta
 }
 
 
-static void parascan (int32_t sectnum, uint8_t dastat, int32_t bunch)
+static void parascan(int32_t sectnum, uint8_t dastat, int32_t bunch)
 {
 	sectortype __far* sec;
 	int32_t j, k, l, m, n, x, z, wallnum, nextsectnum, globalhorizbak;
@@ -1380,7 +1371,7 @@ static void parascan (int32_t sectnum, uint8_t dastat, int32_t bunch)
 	sectnum = thesector[bunchfirst[bunch]]; sec = &sector[sectnum];
 
 	globalhorizbak = globalhoriz;
-	if (parallaxyscale != 65536)
+	if (parallaxyscale != 65536L)
 		globalhoriz = mulscale16(globalhoriz-(YDIM>>1),parallaxyscale) + (YDIM>>1);
 	globvis = globalpisibility;
 	//globalorientation = 0L;
@@ -1903,6 +1894,7 @@ static void dosetaspect(void)
 void drawrooms(int32_t daposx, int32_t daposy, int32_t daposz,
 			 int16_t daang, int16_t dahoriz, int16_t dacursectnum)
 {
+	static uint8_t tempbuf[MAXWALLS];
 	int32_t i, j, cz, fz, closest;
 	int16_t __far* shortptr1;
 	int16_t __far* shortptr2;
@@ -1989,7 +1981,7 @@ void drawrooms(int32_t daposx, int32_t daposy, int32_t daposz,
 
 		numbunches--;
 		bunchfirst[closest] = bunchfirst[numbunches];
-		bunchlast[closest] = bunchlast[numbunches];
+		bunchlast[closest]  = bunchlast[numbunches];
 	}
 }
 
@@ -2015,7 +2007,7 @@ void initengine(void)
 
 	parallaxtype     = 2;
 	parallaxyoffs    = 0L;
-	parallaxyscale   = 65536;
+	parallaxyscale   = 65536L;
 	showinvisibility = 0;
 
 	searchit   = 0;
@@ -2023,10 +2015,6 @@ void initengine(void)
 
 	for (i = 0; i < MAXPALOOKUPS; i++)
 		palookup[i] = NULL;
-
-	pointhighlight = -1;
-	linehighlight  = -1;
-	highlightcnt   = 0;
 
 	totalclock         = 0;
 	visibility         = 512;
@@ -2622,6 +2610,7 @@ void insertspritesect(int16_t sectnum)
 	sprite[blanktouse].sectnum = sectnum;
 }
 
+
 void insertspritestat(int16_t statnum)
 {
 	int16_t blanktouse;
@@ -2679,6 +2668,7 @@ void updatesector(int32_t x, int32_t y, int16_t *sectnum)
 
 	*sectnum = -1;
 }
+
 
 void getzrange(int32_t x, int32_t y, int32_t z, int16_t sectnum,
 			 int32_t *ceilz, int32_t *florz,
@@ -2887,7 +2877,7 @@ void setaspect(int32_t daxrange, int32_t daaspect)
 }
 
 
-void rotatesprite (int32_t sx, int32_t sy, int32_t z, int16_t a, int16_t picnum, int8_t dashade, uint8_t dapalnum, uint8_t dastat, int32_t cx1, int32_t cy1, int32_t cx2, int32_t cy2)
+void rotatesprite(int32_t sx, int32_t sy, int32_t z, int16_t a, int16_t picnum, int8_t dashade, uint8_t dapalnum, uint8_t dastat, int32_t cx1, int32_t cy1, int32_t cx2, int32_t cy2)
 {
 	if ((cx1 > cx2) || (cy1 > cy2)) return;
 	if (z <= 16) return;

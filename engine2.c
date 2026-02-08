@@ -37,6 +37,12 @@ static int32_t xsi[8], ysi[8];
 #define klabs labs
 
 
+static int32_t ksgn(int32_t a)
+{
+	return (a > 0) - (a < 0);
+}
+
+
 	//Simple integer square root  Ex: msqrtasm(81L) = 9L;
 static uint32_t msqrtasm(uint32_t c)
 {
@@ -143,6 +149,29 @@ static int32_t divscale(int32_t a, int32_t b, uint_fast8_t c)
 #define divscale32(a,b) divscale((a),(b),32)
 
 
+int32_t krecip(int32_t num)
+{
+	if (num == 0)
+		return 1L << 30;
+
+	return (1L << 30) / num;
+}
+
+
+void clearshortbuf(int16_t __far* s, int16_t c, size_t n)
+{
+	while (n--)
+		*s++ = c;
+}
+
+
+void clearlongbuf(int32_t __far* s, int32_t c, size_t n)
+{
+	while (n--)
+		*s++ = c;
+}
+
+
 static int32_t rintersect(int32_t x1, int32_t y1, int32_t z1, int32_t vx, int32_t vy, int32_t vz, int32_t x3,
 			  int32_t y3, int32_t x4, int32_t y4, int32_t *intx, int32_t *inty, int32_t *intz)
 {     //p1 towards p2 is a ray
@@ -171,7 +200,7 @@ static int32_t rintersect(int32_t x1, int32_t y1, int32_t z1, int32_t vx, int32_
 }
 
 
-static int32_t raytrace (int32_t x3, int32_t y3, int32_t *x4, int32_t *y4)
+static int32_t raytrace(int32_t x3, int32_t y3, int32_t *x4, int32_t *y4)
 {
 	int32_t x1, y1, x2, y2, bot, topu, nintx, ninty, cnt, z, hitwall;
 	int32_t x21, y21, x43, y43;
@@ -205,13 +234,7 @@ static int32_t raytrace (int32_t x3, int32_t y3, int32_t *x4, int32_t *y4)
 }
 
 
-static int32_t ksgn(int32_t a)
-{
-	return (a > 0) - (a < 0);
-}
-
-
-static void keepaway (int32_t *x, int32_t *y, int32_t w)
+static void keepaway(int32_t *x, int32_t *y, int32_t w)
 {
 	int32_t dx, dy, ox, oy, x1, y1;
 	uint8_t first;
@@ -637,7 +660,7 @@ int32_t clipinsideboxline(int32_t x, int32_t y, int32_t x1, int32_t y1, int32_t 
 }
 
 
-int32_t inside (int32_t x, int32_t y, int16_t sectnum)
+int32_t inside(int32_t x, int32_t y, int16_t sectnum)
 {
 	walltype __far* wal;
 	int32_t i, x1, y1, x2, y2;
@@ -674,6 +697,18 @@ static void qinterpolatedown16(void __far* bufptr, int32_t num, int32_t val, int
 	for (i = 0; i < num; i++)
 	{
 		lptr[i] = (val >> 16);
+		val += add;
+	}
+}
+
+
+void qinterpolatedown16short(void __far* bufptr, int32_t num, int32_t val, int32_t add)
+{
+	int32_t i;
+	int16_t __far* sptr = (int16_t __far*)bufptr;
+	for (i = 0; i < num; i++)
+	{
+		sptr[i] = (int16_t)(val >> 16);
 		val += add;
 	}
 }
@@ -815,13 +850,6 @@ int32_t spritewallfront(spritetype __far* s, int32_t w)
 	wal = &wall[w]; x1 = wal->x; y1 = wal->y;
 	wal = &wall[wal->point2];
 	return (dmulscale32(wal->x-x1,s->y-y1,-(s->x-x1),wal->y-y1) >= 0);
-}
-
-
-void clearlongbuf(int32_t __far* s, int32_t c, size_t n)
-{
-	while (n--)
-		*s++ = c;
 }
 
 
@@ -986,34 +1014,6 @@ void transmaskwallscan(int32_t x1, int32_t x2, int16_t globalpicnum)
 	Z_ChangeTagToCache(bufplc);
 
 	faketimerhandler();
-}
-
-
-int32_t krecip(int32_t num)
-{
-	if (num == 0)
-		return 1L << 30;
-
-	return (1L << 30) / num;
-}
-
-
-void clearshortbuf(int16_t __far* s, int16_t c, size_t n)
-{
-	while (n--)
-		*s++ = c;
-}
-
-
-void qinterpolatedown16short(void __far* bufptr, int32_t num, int32_t val, int32_t add)
-{
-	int32_t i;
-	int16_t __far* sptr = (int16_t __far*)bufptr;
-	for (i = 0; i < num; i++)
-	{
-		sptr[i] = (int16_t)(val>>16);
-		val += add;
-	}
 }
 
 
@@ -1850,7 +1850,7 @@ static void drawspriteFloor(int32_t yp, spritetype __far* tspr, int16_t tilenum,
 }
 
 
-void drawsprite (int32_t snum)
+void drawsprite(int32_t snum)
 {
 	spritetype __far* tspr;
 	sectortype __far* sec;
@@ -1862,17 +1862,17 @@ void drawsprite (int32_t snum)
 
 	xb = spritesx[snum];
 	yp = spritesy[snum];
-	tilenum = tspr->picnum;
+	tilenum   = tspr->picnum;
 	spritenum = tspr->owner;
-	cstat = tspr->cstat;
+	cstat     = tspr->cstat;
 
 	if (picanm[tilenum]&192) tilenum += animateoffs(tilenum);
 	if ((tilesizx[tilenum] <= 0) || (tilesizy[tilenum] <= 0) || (spritenum < 0))
 		return;
 	if ((tspr->xrepeat == 0) || (tspr->yrepeat == 0)) return;
 
-	sectnum = tspr->sectnum; sec = &sector[sectnum];
-	globalpal = tspr->pal;
+	sectnum     = tspr->sectnum; sec = &sector[sectnum];
+	globalpal   = tspr->pal;
 	globalshade = tspr->shade;
 
 	if (cstat&2)
