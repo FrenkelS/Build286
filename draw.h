@@ -10,6 +10,9 @@
 #include <stdint.h>
 #include "compiler.h"
 
+#define XDIM 320
+#define YDIM 200
+
 extern uint8_t __far* _s_screen;
 
 void setgamemode(void);

@@ -10,6 +10,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include "compiler.h"
+#include "draw.h"
 
 
 #define MAXSECTORS 109 /*1024*/
@@ -20,8 +21,6 @@
 #define MAXWALLSB (MAXWALLS/4) /*2048*/
 
 #define MAXSTATUS 1024
-#define XDIM 320
-#define YDIM 200
 #define MAXPSKYTILES 256
 #define MAXSPRITESONSCREEN (MAXSPRITES/4) /*1024*/
 
