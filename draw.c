@@ -19,7 +19,7 @@ uint8_t __far* _s_screen;
 static uint8_t __far* videomemory;
 
 
-static int32_t divscale(int32_t a, int32_t b, int32_t c)
+static int32_t divscale(int32_t a, int32_t b, uint_fast8_t c)
 {
 	return ((int64_t)a << c) / b;
 }
@@ -30,13 +30,13 @@ static int32_t divscale(int32_t a, int32_t b, int32_t c)
 
 static void setview(void)
 {
-	int32_t i;
+	size_t i;
 
-	xdimenrecip = divscale32(1L,XDIM);
+	xdimenrecip = divscale32(1L, XDIM);
 
 	setaspect(65536L, divscale16((int32_t)YDIM * XDIM, (int32_t)XDIM * YDIM));
 
-	for(i=0;i<=XDIM-1;i++)
+	for (i = 0; i < XDIM; i++)
 	{
 		startumost[i] = 0;
 		startdmost[i] = YDIM;
@@ -44,18 +44,18 @@ static void setview(void)
 }
 
 
-static void clearallviews(int32_t dacol)
+static void clearallviews(void)
 {
-	dacol += (dacol<<8); dacol += (dacol<<16);
-
 	_fmemset(_s_screen, 0, (size_t)((int32_t)XDIM * YDIM));
+
 	faketimerhandler();
 }
 
 
 void setgamemode(void)
 {
-	int32_t i, j;
+	size_t i;
+	int32_t j;
 
 	setvmode(0x13);
 	_s_screen = Z_MallocStatic((size_t)((int32_t)XDIM * YDIM));
@@ -65,20 +65,20 @@ void setgamemode(void)
 	oxyaspect = oxdimen = oviewingrange = -1;
 
 	j = 0;
-	for(i=0;i<=YDIM;i++)
+	for (i = 0; i <= YDIM; i++)
 	{
 		ylookup[i] = j;
 		j += XDIM;
 	}
 
 	setview();
-	clearallviews(0L);
+	clearallviews();
 	setPalette();
 
 	if (searchx < 0)
 	{
-		searchx = (XDIM>>1);
-		searchy = (YDIM>>1);
+		searchx = XDIM >> 1;
+		searchy = YDIM >> 1;
 	}
 }
 
