@@ -282,18 +282,6 @@ static int32_t globalx, globaly, globalz;
 static int16_t sectorborder[256], sectorbordercnt;
 static int16_t pointhighlight, linehighlight, highlightcnt;
 
-
-typedef struct
-{
-	int32_t sx, sy, z;
-	int16_t a, picnum;
-	int8_t dashade;
-	uint8_t dapalnum, dastat, pagesleft;
-	int32_t cx1, cy1, cx2, cy2;
-} permfifotype;
-static permfifotype permfifo[MAXPERMS];
-static int32_t permhead = 0, permtail = 0;
-
 static int16_t numscans, numhits, numbunches;
 
 
@@ -2413,32 +2401,7 @@ static void dorotatesprite(int32_t sx, int32_t sy, int32_t z, int16_t a, int16_t
 
 void nextpage(void)
 {
-	int32_t i;
-	permfifotype *per;
-
-	for(i=permtail;i!=permhead;i=((i+1)&(MAXPERMS-1)))
-	{
-		per = &permfifo[i];
-		if ((per->pagesleft > 0) && (per->pagesleft <= 1))
-			dorotatesprite(per->sx,per->sy,per->z,per->a,per->picnum,
-								per->dashade,per->dapalnum,per->dastat,
-								per->cx1,per->cy1,per->cx2,per->cy2);
-	}
-
 	_fmemcpy(videomemory, _s_screen, (size_t)((int32_t)XDIM * YDIM));
-
-	for(i=permtail;i!=permhead;i=((i+1)&(MAXPERMS-1)))
-	{
-		per = &permfifo[i];
-		if (per->pagesleft >= 130)
-			dorotatesprite(per->sx,per->sy,per->z,per->a,per->picnum,
-								per->dashade,per->dapalnum,per->dastat,
-								per->cx1,per->cy1,per->cx2,per->cy2);
-
-		if (per->pagesleft&127) per->pagesleft--;
-		if (((per->pagesleft&127) == 0) && (i == permtail))
-			permtail = ((permtail+1)&(MAXPERMS-1));
-	}
 
 	faketimerhandler();
 
@@ -3007,8 +2970,4 @@ void rotatesprite (int32_t sx, int32_t sy, int32_t z, int16_t a, int16_t picnum,
 	if ((tilesizx[picnum] <= 0) || (tilesizy[picnum] <= 0)) return;
 
 	dorotatesprite(sx,sy,z,a,picnum,dashade,dapalnum,dastat,cx1,cy1,cx2,cy2);
-
-	if ((dastat&64) && (cx1 <= 0) && (cy1 <= 0) && (cx2 >= XDIM-1) && (cy2 >= YDIM-1) &&
-		 (sx == ((XDIM/2L)<<16)) && (sy == ((YDIM/2L)<<16)) && (z == 65536L) && (a == 0) && ((dastat&1) == 0))
-		permhead = permtail = 0;
 }
