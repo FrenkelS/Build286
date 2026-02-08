@@ -1,4 +1,4 @@
-#CFLAGS="-march=i286 -mcmodel=medium -li86 -mnewlib-nano-stdio -Os -fomit-frame-pointer -mregparmcall -DRANGECHECK -DZONEIDCHECK -flto -fwhole-program"
+#CFLAGS="-march=i286 -mcmodel=medium -li86 -mnewlib-nano-stdio -O0 -fomit-frame-pointer -mregparmcall -flto -fwhole-program -Wall -Wextra -Wno-maybe-uninitialized -DRANGECHECK -DZONEIDCHECK"
 CFLAGS="-march=i286 -mcmodel=medium -li86 -mnewlib-nano-stdio -O0 -fomit-frame-pointer -mregparmcall -ffunction-sections -Wall -Wextra -Wno-maybe-uninitialized -DRANGECHECK -DZONEIDCHECK"
 
 GLOBOBJS=""
