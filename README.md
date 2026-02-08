@@ -34,10 +34,12 @@ Download Build286 [here](https://github.com/FrenkelS/Build286/releases).
 |-noems               |Disable EMS          |
 
 ## Building:
-1) Install [Watcom](https://github.com/open-watcom/open-watcom-v2) on Windows.
+1) Install [gcc-ia16](https://launchpad.net/%7Etkchia/+archive/ubuntu/build-ia16) (including [libi86](https://gitlab.com/tkchia/libi86)) on Ubuntu.
 
-2) Run `setenvwc.bat` followed by `bwc16.bat`.
+2) Run `bia16.sh`.
 
-It's possible to build a 32-bit version of Build286 with [DJGPP](https://github.com/andrewwutw/build-djgpp) and Watcom.
+It's possible to build a 32-bit version of Build286 with [DJGPP](https://github.com/andrewwutw/build-djgpp) and [Watcom](https://github.com/open-watcom/open-watcom-v2.
 First run `setenvdj.bat` once and then `bdj32.bat` for DJGPP, and `setenvwc.bat` followed by `bwc32.bat` for Watcom.
 For debugging purposes, the Zone memory can be increased significantly this way.
+
+It's also possible to build a 16-bit version with Watcom: Run `setenvwc.bat` followed by `bwc16.bat`.
