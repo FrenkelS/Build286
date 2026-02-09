@@ -82,6 +82,21 @@ static int32_t mulscale(int32_t a, int32_t b, uint_fast8_t c)
 	return ((int64_t)a * b) >> c;
 }
 
+#if defined _M_I86
+static int32_t mulscale16(int32_t a, int32_t b)
+{
+	uint16_t alw = a;
+	 int16_t ahw = a >> 16;
+	uint16_t blw = b;
+	 int16_t bhw = b >> 16;
+
+	uint32_t ll = (uint32_t) alw * blw;
+	 int32_t hl = ( int32_t) ahw * blw;
+	return (a * bhw) + (ll >> 16) + hl;
+}
+#else
+#define mulscale16(a,b) mulscale((a),(b),16)
+#endif
 
 #define mulscale1(a,b) mulscale((a),(b),1)
 #define mulscale2(a,b) mulscale((a),(b),2)
@@ -95,7 +110,6 @@ static int32_t mulscale(int32_t a, int32_t b, uint_fast8_t c)
 #define mulscale13(a,b) mulscale((a),(b),13)
 #define mulscale14(a,b) mulscale((a),(b),14)
 #define mulscale15(a,b) mulscale((a),(b),15)
-#define mulscale16(a,b) mulscale((a),(b),16)
 #define mulscale18(a,b) mulscale((a),(b),18)
 #define mulscale19(a,b) mulscale((a),(b),19)
 #define mulscale20(a,b) mulscale((a),(b),20)
