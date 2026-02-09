@@ -824,9 +824,9 @@ static void ceilspritehline(int32_t x2, int32_t y, uint8_t __far* bufplc)
 	palookupoffs = palookup[(size_t)globalpal] + (getpalookup(mulscale28(klabs(v),globvis),globalshade)<<8);
 
 	if ((globalorientation&2) == 0)
-		a_mhline(bufplc,palookupoffs,bx,(x2-x1)<<16,by,ylookup[(size_t)y]+x1+_s_screen);
+		a_mhline(bufplc,palookupoffs,bx,(x2-x1)<<16,by, &_s_screen[(size_t)(ylookup[(size_t)y] + x1)]);
 	else
-		a_thline(bufplc,palookupoffs,bx,(x2-x1)<<16,by,ylookup[(size_t)y]+x1+_s_screen);
+		a_thline(bufplc,palookupoffs,bx,(x2-x1)<<16,by, &_s_screen[(size_t)(ylookup[(size_t)y] + x1)]);
 }
 
 
@@ -946,7 +946,7 @@ void maskwallscan(int_fast16_t x1, int_fast16_t x2, int16_t __far* uwal, int16_t
 
 	_a_glogy = globalshiftval;
 
-	p = startx+_s_screen;
+	p = &_s_screen[(size_t)startx];
 	for(x=startx;x<=x2;x++,p++)
 	{
 		y1ve = max(uwal[x], startumost[x]);
@@ -1027,7 +1027,7 @@ static void transmaskvline(int_fast16_t x, int16_t globalpicnum, uint8_t __far* 
 		i %= tilesizx[globalpicnum];
 	bufplc += (size_t)(i * tilesizy[globalpicnum]);
 
-	p = ylookup[y1v]+x+_s_screen;
+	p = &_s_screen[ylookup[y1v] + x];
 
 	a_tvlineasm1(vinc,palookupoffs,y2v-y1v,vplc,bufplc,p);
 }

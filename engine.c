@@ -604,7 +604,7 @@ static void hline(int32_t xr, int32_t yp, uint8_t __far* _a_gbuf)
 
 	a_hlineasm4(xr-xl,getpalookup(mulscale16(r,globvis),globalshade)<<8,
 		globalx2*r+globalypanning,globaly1*r+globalxpanning,
-		ylookup[(size_t)yp]+xr+_s_screen, _a_gbuf);
+		&_s_screen[(size_t)(ylookup[(size_t)yp] + xr)], _a_gbuf);
 }
 
 
@@ -942,7 +942,7 @@ static void wallscan(int32_t x1, int32_t x2, int16_t __far* uwal, int16_t __far*
 			if (y2ve <= y1ve)
 				continue;
 
-			a_vlineasm1flat(y2ve - y1ve - 1, (uint8_t)globalpicnum, x + _s_screen + ylookup[(size_t)y1ve]);
+			a_vlineasm1flat(y2ve - y1ve - 1, (uint8_t)globalpicnum, &_s_screen[(size_t)(ylookup[(size_t)y1ve] + x)]);
 		}
 	}
 	else
@@ -985,7 +985,7 @@ static void wallscan(int32_t x1, int32_t x2, int16_t __far* uwal, int16_t __far*
 			vince = swal[(size_t)x] * globalyscale;
 			vplce = globalzd + vince * (y1ve - globalhoriz + 1);
 
-			a_vlineasm1(vince, palookupoffse, y2ve - y1ve - 1, vplce, &bufplc[(size_t)bufplce], x + _s_screen + ylookup[(size_t)y1ve]);
+			a_vlineasm1(vince, palookupoffse, y2ve - y1ve - 1, vplce, &bufplc[(size_t)bufplce], &_s_screen[(size_t)(ylookup[(size_t)y1ve] + x)]);
 		}
 
 		Z_ChangeTagToCache(bufplc);
@@ -1353,7 +1353,7 @@ static void grouscan(int32_t dax1, int32_t dax2, int_fast16_t sectnum, uint8_t d
 			globalx3 = (globalx2>>10);
 			globaly3 = (globaly2>>10);
 			bz = mulscale16(y2,globalzd) + (globalzx>>6);
-			a_slopevlin(ylookup[(size_t)y2] + x + _s_screen, bz, nptr2, y2 - y1 + 1, globalx1, globaly1, bufplc);
+			a_slopevlin(&_s_screen[(size_t)(ylookup[(size_t)y2] + x)], bz, nptr2, y2 - y1 + 1, globalx1, globaly1, bufplc);
 
 			if ((x&15) == 0)
 			{
@@ -2323,7 +2323,7 @@ static void dorotatesprite(int32_t sx, int32_t sy, int32_t z, int16_t a, int16_t
 			default: bx += xv*(y1-oy); by += yv*(y1-oy); oy = y1; break;
 		}
 
-		p = ylookup[(size_t)y1]+x+_s_screen;
+		p = &_s_screen[(size_t)(ylookup[(size_t)y1] + x)];
 
 		if ((dastat&1) == 0)
 		{
