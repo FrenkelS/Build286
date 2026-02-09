@@ -802,7 +802,7 @@ static void a_thline(uint8_t __far* bufplc, uint8_t __far* paloffs, uint32_t bx,
 }
 
 
-static void ceilspritehline(int32_t x2, int32_t y, uint8_t __far* globalbufplc)
+static void ceilspritehline(int32_t x2, int32_t y, uint8_t __far* bufplc)
 {
 	int32_t x1, v, bx, by;
 	uint8_t __far* palookupoffs;
@@ -824,13 +824,13 @@ static void ceilspritehline(int32_t x2, int32_t y, uint8_t __far* globalbufplc)
 	palookupoffs = palookup[(size_t)globalpal] + (getpalookup(mulscale28(klabs(v),globvis),globalshade)<<8);
 
 	if ((globalorientation&2) == 0)
-		a_mhline(globalbufplc,palookupoffs,bx,(x2-x1)<<16,by,ylookup[(size_t)y]+x1+_s_screen);
+		a_mhline(bufplc,palookupoffs,bx,(x2-x1)<<16,by,ylookup[(size_t)y]+x1+_s_screen);
 	else
-		a_thline(globalbufplc,palookupoffs,bx,(x2-x1)<<16,by,ylookup[(size_t)y]+x1+_s_screen);
+		a_thline(bufplc,palookupoffs,bx,(x2-x1)<<16,by,ylookup[(size_t)y]+x1+_s_screen);
 }
 
 
-static void ceilspritescan(int32_t x1, int32_t x2, uint8_t __far* globalbufplc)
+static void ceilspritescan(int32_t x1, int32_t x2, uint8_t __far* bufplc)
 {
 	int32_t x, twall, bwall;
 	int16_t y1, y2;
@@ -844,20 +844,20 @@ static void ceilspritescan(int32_t x1, int32_t x2, uint8_t __far* globalbufplc)
 			if (twall >= y2)
 			{
 				while (y1 < y2-1)
-					ceilspritehline(x - 1, ++y1, globalbufplc);
+					ceilspritehline(x - 1, ++y1, bufplc);
 
 				y1 = twall;
 			}
 			else
 			{
 				while (y1 < twall)
-					ceilspritehline(x - 1, ++y1, globalbufplc);
+					ceilspritehline(x - 1, ++y1, bufplc);
 
 				while (y1 > twall)
 					lastx[y1--] = x;
 			}
 			while (y2 > bwall)
-				ceilspritehline(x - 1, --y2, globalbufplc);
+				ceilspritehline(x - 1, --y2, bufplc);
 
 			while (y2 < bwall)
 				lastx[y2++] = x;
@@ -865,7 +865,7 @@ static void ceilspritescan(int32_t x1, int32_t x2, uint8_t __far* globalbufplc)
 		else
 		{
 			while (y1 < y2-1)
-				ceilspritehline(x - 1, ++y1, globalbufplc);
+				ceilspritehline(x - 1, ++y1, bufplc);
 
 			if (x == x2)
 				break;
@@ -876,7 +876,7 @@ static void ceilspritescan(int32_t x1, int32_t x2, uint8_t __far* globalbufplc)
 	}
 
 	while (y1 < y2-1)
-		ceilspritehline(x2, ++y1, globalbufplc);
+		ceilspritehline(x2, ++y1, bufplc);
 
 	faketimerhandler();
 }
@@ -962,7 +962,7 @@ void maskwallscan(int_fast16_t x1, int_fast16_t x2, int16_t __far* uwal, int16_t
 		vince = swal[x] * globalyscale;
 		vplce = globalzd + vince * (y1ve - globalhoriz + 1);
 
-		a_mvlineasm1(vince, palookupoffse, y2ve - y1ve - 1, vplce, bufplce + bufplc, p + ylookup[y1ve]);
+		a_mvlineasm1(vince, palookupoffse, y2ve - y1ve - 1, vplce, &bufplc[(size_t)bufplce], p + ylookup[y1ve]);
 	}
 
 	Z_ChangeTagToCache(bufplc);
@@ -1025,7 +1025,7 @@ static void transmaskvline(int_fast16_t x, int16_t globalpicnum, uint8_t __far* 
 	i = lwall[x]+globalxpanning;
 	if (i >= tilesizx[globalpicnum])
 		i %= tilesizx[globalpicnum];
-	bufplc += i * tilesizy[globalpicnum];
+	bufplc += (size_t)(i * tilesizy[globalpicnum]);
 
 	p = ylookup[y1v]+x+_s_screen;
 

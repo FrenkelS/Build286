@@ -985,7 +985,7 @@ static void wallscan(int32_t x1, int32_t x2, int16_t __far* uwal, int16_t __far*
 			vince = swal[(size_t)x] * globalyscale;
 			vplce = globalzd + vince * (y1ve - globalhoriz + 1);
 
-			a_vlineasm1(vince, palookupoffse, y2ve - y1ve - 1, vplce, bufplce + bufplc, x + _s_screen + ylookup[(size_t)y1ve]);
+			a_vlineasm1(vince, palookupoffse, y2ve - y1ve - 1, vplce, &bufplc[(size_t)bufplce], x + _s_screen + ylookup[(size_t)y1ve]);
 		}
 
 		Z_ChangeTagToCache(bufplc);
@@ -2328,12 +2328,12 @@ static void dorotatesprite(int32_t sx, int32_t sy, int32_t z, int16_t a, int16_t
 		if ((dastat&1) == 0)
 		{
 			if (dastat&64)
-				a_spritevline(bx & 65535, by & 65535, y2 - y1 + 1, (bx >> 16) * ysiz + (by >> 16) + bufplc, p, palookupoffs);
+				a_spritevline(bx & 65535, by & 65535, y2 - y1 + 1, &bufplc[(size_t)((bx >> 16) * ysiz + (by >> 16))] , p, palookupoffs);
 			else
-				a_mspritevline(bx & 65535, by & 65535, y2 - y1 + 1, (bx >> 16) * ysiz + (by >> 16) + bufplc, p, palookupoffs);
+				a_mspritevline(bx & 65535, by & 65535, y2 - y1 + 1, &bufplc[(size_t)((bx >> 16) * ysiz + (by >> 16))], p, palookupoffs);
 		}
 		else
-			a_tspritevline(bx & 65535, by & 65535, y2 - y1 + 1, (bx >> 16) * ysiz + (by >> 16) + bufplc, p, palookupoffs);
+			a_tspritevline(bx & 65535, by & 65535, y2 - y1 + 1, &bufplc[(size_t)((bx >> 16) * ysiz + (by >> 16))], p, palookupoffs);
 
 		faketimerhandler();
 	}
