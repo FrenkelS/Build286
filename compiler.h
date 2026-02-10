@@ -60,6 +60,8 @@ typedef uint32_t segment_t;
 
 
 #if defined __GNUC__
+#define PACKEDATTR_PRE
+#define PACKEDATTR_POST __attribute__((packed))
 #define max(a,b)  (((a) > (b)) ? (a) : (b))
 #define min(a,b)  (((a) < (b)) ? (a) : (b))
 #endif
@@ -67,6 +69,8 @@ typedef uint32_t segment_t;
 
 
 #if defined __WATCOMC__
+#define PACKEDATTR_PRE	_Packed
+#define PACKEDATTR_POST
 #define _Noreturn __declspec(aborts)
 #endif
 

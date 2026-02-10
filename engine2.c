@@ -77,12 +77,53 @@ static int32_t scale(int32_t a, int32_t b, int32_t c)
 }
 
 
+union int64_u {
+	int64_t ll;
+	PACKEDATTR_PRE struct {
+		int32_t dw;
+		int32_t dwh;
+	} PACKEDATTR_POST s0123;
+	PACKEDATTR_PRE struct {
+		int8_t b0;
+		int32_t dw;
+		int8_t b5;
+		int8_t b6;
+		int8_t b7;
+	} PACKEDATTR_POST s1234;
+	PACKEDATTR_PRE struct {
+		int16_t wl;
+		int32_t dw;
+		int16_t wh;
+	} PACKEDATTR_POST s2345;
+	PACKEDATTR_PRE struct {
+		int8_t b0;
+		int8_t b1;
+		int8_t b2;
+		int32_t dw;
+		int8_t b7;
+	} PACKEDATTR_POST s3456;
+	PACKEDATTR_PRE struct {
+		int32_t dwl;
+		int32_t dw;
+	} PACKEDATTR_POST s4567;
+};
+
+typedef char assertInt64_uSize[sizeof(union int64_u) == 8 ? 1 : -1];
+
+
 static int32_t mulscale(int32_t a, int32_t b, uint_fast8_t c)
 {
 	return ((int64_t)a * b) >> c;
 }
 
 #if defined _M_I86
+static int32_t mulscale8(int32_t a, int32_t b)
+{
+	union int64_u r;
+	r.ll = (int64_t)a * b;
+	return r.s1234.dw;
+}
+
 static int32_t mulscale16(int32_t a, int32_t b)
 {
 	uint16_t alw = a;
@@ -94,13 +135,21 @@ static int32_t mulscale16(int32_t a, int32_t b)
 	 int32_t hl = ( int32_t) ahw * blw;
 	return (a * bhw) + (ll >> 16) + hl;
 }
+
+static int32_t mulscale24(int32_t a, int32_t b)
+{
+	union int64_u r;
+	r.ll = (int64_t)a * b;
+	return r.s3456.dw;
+}
 #else
+#define mulscale8(a,b) mulscale((a),(b),8)
 #define mulscale16(a,b) mulscale((a),(b),16)
+#define mulscale24(a,b) mulscale((a),(b),24)
 #endif
 
 #define mulscale2(a,b) mulscale((a),(b),2)
 #define mulscale4(a,b) mulscale((a),(b),4)
-#define mulscale8(a,b) mulscale((a),(b),8)
 #define mulscale9(a,b) mulscale((a),(b),9)
 #define mulscale10(a,b) mulscale((a),(b),10)
 #define mulscale11(a,b) mulscale((a),(b),11)
@@ -109,7 +158,6 @@ static int32_t mulscale16(int32_t a, int32_t b)
 #define mulscale15(a,b) mulscale((a),(b),15)
 #define mulscale19(a,b) mulscale((a),(b),19)
 #define mulscale20(a,b) mulscale((a),(b),20)
-#define mulscale24(a,b) mulscale((a),(b),24)
 #define mulscale28(a,b) mulscale((a),(b),28)
 #define mulscale30(a,b) mulscale((a),(b),30)
 #define mulscale31(a,b) mulscale((a),(b),31)
@@ -120,15 +168,41 @@ static int32_t dmulscale(int32_t a, int32_t b, int32_t c, int32_t d, uint_fast8_
 	return (((int64_t)a * b) + ((int64_t)c * d)) >> e;
 }
 
+#if defined _M_I86
+static int32_t dmulscale8(int32_t a, int32_t b, int32_t c, int32_t d)
+{
+	union int64_u r;
+	r.ll  = (int64_t)a * b;
+	r.ll += (int64_t)c * d;
+	return r.s1234.dw;
+}
+
+static int32_t dmulscale16(int32_t a, int32_t b, int32_t c, int32_t d)
+{
+	union int64_u r;
+	r.ll  = (int64_t)a * b;
+	r.ll += (int64_t)c * d;
+	return r.s2345.dw;
+}
+
+static int32_t dmulscale32(int32_t a, int32_t b, int32_t c, int32_t d)
+{
+	union int64_u r;
+	r.ll  = (int64_t)a * b;
+	r.ll += (int64_t)c * d;
+	return r.s4567.dw;
+}
+#else
+#define dmulscale8(a,b,c,d) dmulscale((a),(b),(c),(d),8)
+#define dmulscale16(a,b,c,d) dmulscale((a),(b),(c),(d),16)
+#define dmulscale32(a,b,c,d) dmulscale((a),(b),(c),(d),32)
+#endif
 
 #define dmulscale3(a,b,c,d) dmulscale((a),(b),(c),(d),3)
 #define dmulscale6(a,b,c,d) dmulscale((a),(b),(c),(d),6)
-#define dmulscale8(a,b,c,d) dmulscale((a),(b),(c),(d),8)
 #define dmulscale10(a,b,c,d) dmulscale((a),(b),(c),(d),10)
 #define dmulscale12(a,b,c,d) dmulscale((a),(b),(c),(d),12)
 #define dmulscale14(a,b,c,d) dmulscale((a),(b),(c),(d),14)
-#define dmulscale16(a,b,c,d) dmulscale((a),(b),(c),(d),16)
-#define dmulscale32(a,b,c,d) dmulscale((a),(b),(c),(d),32)
 
 
 static int32_t divscale(int32_t a, int32_t b, uint_fast8_t c)
@@ -136,14 +210,47 @@ static int32_t divscale(int32_t a, int32_t b, uint_fast8_t c)
 	return ((int64_t)a << c) / b;
 }
 
+#if defined _M_I86
+static int32_t divscale16(int32_t a, int32_t b)
+{
+	union int64_u r;
+	// r.ll = (int64_t)a << 16;
+	r.s2345.wl = 0;
+	r.s2345.dw = a;
+	r.s2345.wh = (a < 0) ? 0xffff : 0x0000;
+	return r.ll / b;
+}
 
+static int32_t divscale24(int32_t a, int32_t b)
+{
+	union int64_u r;
+	// r.ll = (int64_t)a << 24;
+	r.s3456.b0 = 0;
+	r.s3456.b1 = 0;
+	r.s3456.b2 = 0;
+	r.s3456.dw = a;
+	r.s3456.b7 = (a < 0) ? 0xff : 0x00;
+	return r.ll / b;
+}
+
+static int32_t divscale32(int32_t a, int32_t b)
+{
+	union int64_u r;
+	// r.ll = (int64_t)a << 32;
+	r.s4567.dwl = 0;
+	r.s4567.dw  = a;
+	return r.ll / b;
+}
+#else
 #define divscale16(a,b) divscale((a),(b),16)
+#define divscale24(a,b) divscale((a),(b),24)
+#define divscale32(a,b) divscale((a),(b),32)
+#endif
+
 #define divscale18(a,b) divscale((a),(b),18)
 #define divscale19(a,b) divscale((a),(b),19)
 #define divscale20(a,b) divscale((a),(b),20)
-#define divscale24(a,b) divscale((a),(b),24)
 #define divscale30(a,b) divscale((a),(b),30)
-#define divscale32(a,b) divscale((a),(b),32)
 
 
 int32_t krecip(int32_t num)
