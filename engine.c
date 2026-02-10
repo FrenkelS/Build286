@@ -981,7 +981,7 @@ static void wallscan(int32_t x1, int32_t x2, int16_t __far* uwal, int16_t __far*
 			if (y2ve <= y1ve)
 				continue;
 
-			palookupoffse = fpalookup + (getpalookup(mulscale16(swal[(size_t)x], globvis), globalshade) << 8);
+			palookupoffse = &fpalookup[getpalookup(mulscale16(swal[(size_t)x], globvis), globalshade) << 8];
 
 			bufplce = lwal[(size_t)x] + globalxpanning;
 			if (bufplce >= tsizx)
@@ -1354,12 +1354,12 @@ static void grouscan(int32_t dax1, int32_t dax2, int_fast16_t sectnum, uint8_t d
 			nptr2 = (int32_t *)&slopalookup[(size_t)(y2+(shoffs>>15))];
 			while (nptr1 <= mptr1)
 			{
-				*mptr1-- = getAbsoluteAddress(p + (getpalookup(mulscale24(krecip(m1), globvis), globalshade) << 8));
+				*mptr1-- = getAbsoluteAddress(&p[(getpalookup(mulscale24(krecip(m1), globvis), globalshade) << 8)]);
 				m1 -= l;
 			}
 			while (nptr2 >= mptr2)
 			{
-				*mptr2++ = getAbsoluteAddress(p + (getpalookup(mulscale24(krecip(m2), globvis), globalshade) << 8));
+				*mptr2++ = getAbsoluteAddress(&p[(getpalookup(mulscale24(krecip(m2), globvis), globalshade) << 8)]);
 				m2 += l;
 			}
 
@@ -2010,10 +2010,10 @@ void drawrooms(int32_t daposx, int32_t daposy, int32_t daposz,
 }
 
 
-void setvmode(int16_t a)
+void setvmode(int16_t vmode)
 {
 	union REGS regs;
-	regs.w.ax = a;
+	regs.w.ax = vmode;
 	int86(0x10, &regs, &regs);
 }
 

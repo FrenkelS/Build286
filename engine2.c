@@ -967,7 +967,7 @@ void maskwallscan(int_fast16_t x1, int_fast16_t x2, int16_t __far* uwal, int16_t
 		y2ve = min(dwal[x], startdmost[x]);
 		if (y2ve <= y1ve) continue;
 
-		palookupoffse = fpalookup+(getpalookup(mulscale16(swal[x],globvis),globalshade)<<8);
+		palookupoffse = &fpalookup[(getpalookup(mulscale16(swal[x],globvis),globalshade)<<8)];
 
 		bufplce = lwal[x] + globalxpanning;
 		if (bufplce >= tsizx) { if (xnice == 0) bufplce %= tsizx; else bufplce &= tsizx; }
@@ -976,7 +976,7 @@ void maskwallscan(int_fast16_t x1, int_fast16_t x2, int16_t __far* uwal, int16_t
 		vince = swal[x] * globalyscale;
 		vplce = globalzd + vince * (y1ve - globalhoriz + 1);
 
-		a_mvlineasm1(vince, palookupoffse, y2ve - y1ve - 1, vplce, &bufplc[(size_t)bufplce], p + ylookup[y1ve]);
+		a_mvlineasm1(vince, palookupoffse, y2ve - y1ve - 1, vplce, &bufplc[(size_t)bufplce], &p[ylookup[y1ve]]);
 	}
 
 	Z_ChangeTagToCache(bufplc);

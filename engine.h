@@ -240,7 +240,7 @@ extern int32_t xdimenrecip;
 
 
 void drawrooms(int32_t daposx, int32_t daposy, int32_t daposz, int16_t daang, int16_t dahoriz, int16_t dacursectnum);
-void setvmode(int16_t a);
+void setvmode(int16_t vmode);
 void initengine(void);
 void drawmasks(void);
 void initspritelists(void);
