@@ -125,7 +125,7 @@ int16_t searchit;
 int32_t searchx = -1, searchy;                          //search input
 int16_t searchsector, searchwall, searchstat;     //search output
 
-static int32_t _a_gbxinc, _a_gbyinc, _a_gpinc;
+static int32_t _a_gbxinc, _a_gbyinc;
 static uint8_t __far* _a_ghlinepal;
 
 static uint8_t parallaxtype, showinvisibility;
@@ -1206,7 +1206,7 @@ static void a_slopevlin(uint8_t __far* p, int32_t bz, int32_t *slopaloffs, int32
 		v = by + globaly3 * i;
 		*p = *(uint8_t __far*)(slopalptr[0] + _a_gbuf[(size_t)(((u >> (32 - _a_glogx)) << _a_glogy) + (v >> (32 - _a_glogy)))]);
 		slopalptr--;
-		p += _a_gpinc;
+		p -= XDIM;
 	}
 }
 
@@ -1329,8 +1329,6 @@ static void grouscan(int32_t dax1, int32_t dax2, int_fast16_t sectnum, uint8_t d
 	_a_glogy = picsiz[globalpicnum] >> 4;
 
 	bufplc = loadtile(globalpicnum);
-
-	_a_gpinc = -ylookup[1];
 
 	l = (globalzd>>16);
 
