@@ -26,6 +26,14 @@ Controls:
 |Rotate Build Engine sprite       |5, 6            |
 |Quit to DOS                      |Esc             |
 
+Executables:
+|Executable  |Compiler       |
+|------------|---------------|
+|ia16test.exe|16-bit gcc-ia16|
+|wc16test.exe|16-bit Watcom  |
+|wc32test.exe|32-bit Watcom  |
+|dj32test.exe|32-bit DJGPP   |
+
 Command line arguments:
 |Command line argument|Effect               |
 |---------------------|---------------------|
